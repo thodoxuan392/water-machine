@@ -25,8 +25,10 @@ typedef struct {
 }RFID_t;
 
 
-bool RFID_init(void);
+void RFID_init(void);
+bool RFID_isPlaced(RFID_Id_t id);
 bool RFID_get(RFID_Id_t id, RFID_t *);
 bool RFID_set(RFID_Id_t id, RFID_t *);
+bool RFID_isError(RFID_Id_t id);
 
 #endif /* INC_DEVICE_RFID_H_ */

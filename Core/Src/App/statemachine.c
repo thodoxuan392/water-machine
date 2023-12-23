@@ -13,6 +13,11 @@
 #include "Lib/scheduler/scheduler.h"
 #include "Lib/utils/utils_logger.h"
 
+#include "Device/placedpoint.h"
+#include "Device/rfid.h"
+#include "Device/sound.h"
+#include "Device/waterflow.h"
+
 enum {
 	SM_IDLE,
 	SM_OPEN_VAN,
@@ -20,6 +25,8 @@ enum {
 	SM_UPDATE_RFID,
 };
 
+// Machine
+static void MACHINE_update(MACHINE_Id_t id);
 static void SM_idle();
 static void SM_openVan();
 static void SM_playSound();
@@ -40,6 +47,28 @@ static const char * state_name[] = {
 static uint8_t timeout_task_id;
 static bool timeout = false;
 
+static MACHINE_t machine[] = {
+		[MACHINE_ID_1] = {
+				.rfid_id = RFID_ID_1,
+				.sound_id = SOUND_ID_1,
+				.placed_point_id = PLACEDPOINT_ID_1,
+				.water_flow_id = WATERFLOW_ID_1,
+				.rfid = {{0}},
+				.placed_point_status = 0,
+				.rfid_placed_status = 0,
+				.error = 0
+		},
+		[MACHINE_ID_2] = {
+				.rfid_id = RFID_ID_2,
+				.sound_id = SOUND_ID_2,
+				.placed_point_id = PLACEDPOINT_ID_2,
+				.water_flow_id = WATERFLOW_ID_2,
+				.rfid = {{0}},
+				.placed_point_status = 0,
+				.rfid_placed_status = 0,
+				.error = 0
+		}
+};
 bool STATEMACHINE_init(){
 }
 
@@ -47,6 +76,8 @@ void STATEMACHINE_run(){
 	STATUSREPORTER_run();
 	COMMANDHANDLER_run();
 	SCH_Dispatch_Tasks();
+	MACHINE_update(MACHINE_ID_1);
+	MACHINE_update(MACHINE_ID_2);
 	switch (state) {
 		case SM_IDLE:
 			SM_idle();
@@ -67,7 +98,7 @@ void STATEMACHINE_run(){
 	prev_state = state;
 }
 
-bool STATEMACHINE_openVAN(MACHINE_Id_t id){
+bool STATEMACHINE_openVAN(MACHINE_Id_t id, bool enable){
 
 }
 
@@ -81,6 +112,17 @@ bool STATEMACHINE_updateRFID(MACHINE_Id_t id, RFID_Id_t *rfid){
 
 MACHINE_t* STATEMACHINE_getMachine(MACHINE_Id_t id){
 
+}
+
+static void MACHINE_update(MACHINE_Id_t id){
+	RFID_get(machine[id].rfid_id, &machine[id].rfid);
+	machine[id].placed_point_status = PLACEDPOINT_isPlaced(machine[id].placed_point_id);
+	machine[id].water_flow_status = WATERFLOW_get(machine[id].water_flow_status);
+	machine[id].rfid_placed_status = RFID_isPlaced(machine[id].rfid_placed_status);
+	machine[id].error = (uint8_t)PLACEDPOINT_isError(machine[id].placed_point_id) |
+						((uint8_t)WATERFLOW_isError(machine[id].water_flow_id) << 1) |
+						((uint8_t)RFID_isError(machine[id].rfid_id) << 2) |
+						((uint8_t)SOUND_isError(machine[id].placed_point_id) << 3);
 }
 
 

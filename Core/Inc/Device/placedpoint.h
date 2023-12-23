@@ -17,5 +17,6 @@ typedef enum {
 
 bool PLACEDPOINT_init(void);
 bool PLACEDPOINT_isPlaced(PLACEDPOINT_Id_t id);
+bool PLACEDPOINT_isError(PLACEDPOINT_Id_t id);
 
 #endif /* INC_DEVICE_PLACEDPOINT_H_ */

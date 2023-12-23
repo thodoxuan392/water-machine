@@ -28,3 +28,7 @@ bool SOUND_pause(SOUND_Id_t id){
 bool SOUND_resume(SOUND_Id_t id){
 
 }
+
+bool SOUND_isError(SOUND_Id_t id){
+
+}

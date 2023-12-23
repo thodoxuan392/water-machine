@@ -15,3 +15,8 @@ bool PLACEDPOINT_init(void){
 bool PLACEDPOINT_isPlaced(PLACEDPOINT_Id_t id){
 
 }
+
+
+bool PLACEDPOINT_isError(PLACEDPOINT_Id_t id){
+
+}

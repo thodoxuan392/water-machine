@@ -52,6 +52,7 @@
 
 /* USER CODE END PM */
 
+/* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -101,6 +102,7 @@ int main(void)
   STATUSREPORTER_init();
   STATEMACHINE_init();
   /* USER CODE END Init */
+
   /* USER CODE BEGIN 2 */
   /* USER CODE END 2 */
 
@@ -116,8 +118,8 @@ int main(void)
 //  TIMER_test();
   while (1)
   {
-	  WATCHDOG_refresh();
-	  STATEMACHINE_run();
+//	  WATCHDOG_refresh();
+//	  STATEMACHINE_run();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -125,6 +127,10 @@ int main(void)
   /* USER CODE END 3 */
 }
 
+
+/* USER CODE BEGIN 4 */
+
+/* USER CODE END 4 */
 
 /**
   * @brief  This function is executed in case of error occurrence.

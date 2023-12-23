@@ -44,13 +44,14 @@ void STATUSREPORTER_reportRfidDetected(MACHINE_Id_t id){
 
 static void STATUSREPORTER_report_status(MACHINE_Id_t id){
 	PROTOCOL_t protocol;
-	STATUSREPORTER_buildRifdDetected(&protocol, id);
+	STATUSREPORTER_buildStatus(&protocol, id);
 	// Send message
 	PROTOCOL_send(&protocol);
 }
 static void STATUSREPORTER_buildStatus(PROTOCOL_t * proto, MACHINE_Id_t machineId){
 	MACHINE_t* machine = STATEMACHINE_getMachine(machineId);
 	proto->protocol_id = PROTOCOL_ID_STATUS;
+	proto->data_len = 0;
 	proto->data[proto->data_len++] = machineId;
 	proto->data[proto->data_len++] = machine->placed_point_status;
 	proto->data[proto->data_len++] = machine->water_flow_status;
@@ -61,6 +62,7 @@ static void STATUSREPORTER_buildStatus(PROTOCOL_t * proto, MACHINE_Id_t machineI
 static void STATUSREPORTER_buildRifdDetected(PROTOCOL_t * proto, MACHINE_Id_t machineId){
 	MACHINE_t* machine = STATEMACHINE_getMachine(machineId);
 	proto->protocol_id = PROTOCOL_ID_RFID_DETECTED;
+	proto->data_len = 0;
 	proto->data[proto->data_len++] = machineId;
 	proto->data[proto->data_len++] = machine->rfid.id_len;
 	for (int var = 0; var < machine->rfid.id_len; ++var) {

@@ -11,7 +11,7 @@
 #include "main.h"
 #include "Hal/uart.h"
 
-#define UTILS_LOG(data, len)	(void)(UART_3,data,len)
+#define UTILS_LOG(data, len)	UART_send(UART_3,data,len)
 #define UTILS_MAX_LOG_BUFFER 1024
 #define UTILS_GET_TIME()		HAL_GetTick()
 

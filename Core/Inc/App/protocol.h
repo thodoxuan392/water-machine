@@ -15,6 +15,9 @@
 #define START_BYTE 0x78
 #define STOP_BYTE 0x79
 #define DATA_MAX_LENGTH 	255
+#define TX_BUFFER_MAX_LENGTH	512
+#define RX_BUFFER_MAX_LENGTH	1024
+#define RX_TIMEOUT_MS				100			// 100ms
 
 typedef struct {
 	uint8_t protocol_id;
@@ -39,7 +42,6 @@ void PROTOCOL_init(void);
 void PROTOCOL_run(void);
 void PROTOCOL_send(PROTOCOL_t *proto);
 bool PROTOCOL_receive(PROTOCOL_t * proto);
-uint8_t PROTOCOL_calCheckSum(uint8_t *data, uint8_t data_len);
-void PROTOCOL_serialize(PROTOCOL_t * proto, uint8_t *data, size_t * data_len);
+
 
 #endif /* INC_APP_PROTOCOL_H_ */

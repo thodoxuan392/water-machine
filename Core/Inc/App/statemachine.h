@@ -22,7 +22,6 @@ typedef enum {
 }MACHINE_Id_t;
 
 typedef struct {
-	MACHINE_Id_t machine_id;
 	RFID_Id_t rfid_id;
 	SOUND_Id_t sound_id;
 	PLACEDPOINT_Id_t placed_point_id;
@@ -38,7 +37,7 @@ typedef struct {
 
 bool STATEMACHINE_init();
 void STATEMACHINE_run();
-bool STATEMACHINE_openVAN(MACHINE_Id_t id);
+bool STATEMACHINE_openVAN(MACHINE_Id_t id, bool enable);
 bool STATEMACHINE_playSound(MACHINE_Id_t id, uint32_t soundIndex);
 bool STATEMACHINE_updateRFID(MACHINE_Id_t id, RFID_Id_t *rfid);
 MACHINE_t* STATEMACHINE_getMachine(MACHINE_Id_t id);

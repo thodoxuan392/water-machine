@@ -7,24 +7,69 @@
 
 
 #include <App/protocol.h>
+#include <Lib/utils/utils_buffer.h>
+
+#include <Hal/uart.h>
+#include <Hal/timer.h>
+
+#define PROTOCOL_UART 	UART_1
+
+static void PROTOCOL_timerInterrupt1ms(void);
+static uint8_t PROTOCOL_parse(uint8_t * data, size_t data_len, PROTOCOL_t *proto);
+static uint8_t PROTOCOL_calCheckSum(uint8_t *data, uint8_t data_len);
+static void PROTOCOL_serialize(PROTOCOL_t * proto, uint8_t *data, size_t * data_len);
+
+static PROTOCOL_t PROTOCOL_message;
+static utils_buffer_t PROTOCOL_rxMessage;
+static uint8_t rx_buffer[RX_BUFFER_MAX_LENGTH];
+static uint8_t rx_buffer_len = 0;
+static uint8_t tx_buffer[TX_BUFFER_MAX_LENGTH];
+static uint32_t rx_time_cnt = 0;
+static bool rx_timeout = false;
 
 void PROTOCOL_init(void){
-
+	TIMER_attach_intr_1ms(PROTOCOL_timerInterrupt1ms);
+	utils_buffer_init(&PROTOCOL_rxMessage, sizeof(PROTOCOL_t));
 }
 
 void PROTOCOL_run(void){
-
+	if(UART_receive_available(PROTOCOL_UART)){
+		rx_time_cnt = RX_TIMEOUT_MS;
+		rx_timeout = false;
+		rx_buffer[rx_buffer_len++] = UART_receive_data(PROTOCOL_UART);
+		if(PROTOCOL_parse(rx_buffer, rx_buffer_len, &PROTOCOL_message)){
+			utils_buffer_push(&PROTOCOL_rxMessage, &PROTOCOL_message);
+		}
+	}
+	if(rx_timeout){
+		rx_buffer_len = 0;
+	}
 }
 
 void PROTOCOL_send(PROTOCOL_t *proto){
-
+	size_t tx_len;
+	PROTOCOL_serialize(proto, tx_buffer, &tx_len);
+	UART_send(PROTOCOL_UART, tx_buffer, tx_len);
 }
 
 bool PROTOCOL_receive(PROTOCOL_t * proto){
+	return utils_buffer_pop(&PROTOCOL_rxMessage, proto);
+}
+
+static void PROTOCOL_timerInterrupt1ms(void){
+	if(rx_time_cnt > 0){
+		rx_time_cnt--;
+		if(rx_time_cnt == 0){
+			rx_timeout = true;
+		}
+	}
+}
+
+static uint8_t PROTOCOL_parse(uint8_t * data, size_t data_len, PROTOCOL_t *proto){
 
 }
 
-uint8_t PROTOCOL_calCheckSum(uint8_t *data, uint8_t data_len){
+static uint8_t PROTOCOL_calCheckSum(uint8_t *data, uint8_t data_len){
 	if(data_len == 0){
 		return 0;
 	}
@@ -35,7 +80,7 @@ uint8_t PROTOCOL_calCheckSum(uint8_t *data, uint8_t data_len){
 	return checkSum;
 }
 
-void PROTOCOL_serialize(PROTOCOL_t * proto, uint8_t *data, size_t * data_len){
+static void PROTOCOL_serialize(PROTOCOL_t * proto, uint8_t *data, size_t * data_len){
 	uint8_t data_len_temp = 0;
 	data[data_len_temp++] = START_BYTE;
 	data[data_len_temp++] = proto->protocol_id;
