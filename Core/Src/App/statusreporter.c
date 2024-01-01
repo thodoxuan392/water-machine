@@ -10,7 +10,7 @@
 #include "App/protocol.h"
 #include "Lib/scheduler/scheduler.h"
 
-#define STATUSREPORT_INTERVAL		60 * 1000 	// 60s
+#define STATUSREPORT_INTERVAL		500 	// 1s
 
 static bool timeout_flag = true;
 
@@ -54,6 +54,7 @@ static void STATUSREPORTER_buildStatus(PROTOCOL_t * proto, MACHINE_Id_t machineI
 	proto->data_len = 0;
 	proto->data[proto->data_len++] = machineId;
 	proto->data[proto->data_len++] = machine->placed_point_status;
+	proto->data[proto->data_len++] = machine->solenoid_status;
 	proto->data[proto->data_len++] = machine->water_flow_status;
 	proto->data[proto->data_len++] = machine->rfid_placed_status;
 	proto->data[proto->data_len++] = machine->error;
@@ -70,6 +71,12 @@ static void STATUSREPORTER_buildRifdDetected(PROTOCOL_t * proto, MACHINE_Id_t ma
 	}
 	proto->data[proto->data_len++] = (machine->rfid.money >> 8) & 0xFF;
 	proto->data[proto->data_len++] = machine->rfid.money & 0xFF;
+	proto->data[proto->data_len++] = machine->rfid.issueDate[0];
+	proto->data[proto->data_len++] = machine->rfid.issueDate[1];
+	proto->data[proto->data_len++] = machine->rfid.issueDate[2];
+	proto->data[proto->data_len++] = machine->rfid.expireDate[0];
+	proto->data[proto->data_len++] = machine->rfid.expireDate[1];
+	proto->data[proto->data_len++] = machine->rfid.expireDate[2];
 }
 
 

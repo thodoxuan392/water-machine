@@ -36,9 +36,16 @@ static void COMMANDHANDLER_handleCommandUpdateRfid(PROTOCOL_t *proto);
 
 // ACK
 static void COMMANDHANDLER_sendConfigACK(uint8_t machineId);
+static void COMMANDHANDLER_sendConfigResult(uint8_t machineId, uint8_t result);
+
+
 static void COMMANDHANDLER_sendCommandOpenVanACK(uint8_t machineId);
+
 static void COMMANDHANDLER_sendCommandPlayAudioACK(uint8_t machineId);
+static void COMMANDHANDLER_sendCommandPlayAudioResult(uint8_t machineId, uint8_t result);
+
 static void COMMANDHANDLER_sendCommandUpdateRfidACK(uint8_t machineId);
+static void COMMANDHANDLER_sendCommandUpdateRfidResult(uint8_t machineId, uint8_t result);
 
 
 
@@ -68,6 +75,17 @@ void COMMANDHANDLER_run(){
 		}
 	}
 }
+
+void COMMANDHANDLER_sendCommandOpenVanResult(uint8_t machineId, uint8_t result){
+	PROTOCOL_t protocol;
+	protocol.protocol_id = PROTOCOL_ID_COMMAND_OPEN_VAN_RESULT;
+	protocol.data_len = 1;
+	protocol.data[0] = machineId;
+	protocol.data[1] = result;
+
+	PROTOCOL_send(&protocol);
+}
+
 static void COMMANDHANDLER_handleConfig(PROTOCOL_t *proto){
 	if(proto->data_len != 2){
 		utils_log_error("HandleConfig failed: Invalid data_len %d, expected 2\r\n", proto->data_len);
@@ -77,6 +95,8 @@ static void COMMANDHANDLER_handleConfig(PROTOCOL_t *proto){
 	uint8_t maximumWaterFlowAllowed = proto->data[1];
 	// Send ACK
 	COMMANDHANDLER_sendConfigACK(machineId);
+	// Send Config result
+	COMMANDHANDLER_sendConfigResult(machineId, RESULT_SUCCESS);
 }
 static void COMMANDHANDLER_handleCommandOpenVan(PROTOCOL_t *proto){
 	if(proto->data_len != 2){
@@ -88,7 +108,11 @@ static void COMMANDHANDLER_handleCommandOpenVan(PROTOCOL_t *proto){
 	// Send ACK
 	COMMANDHANDLER_sendCommandOpenVanACK(machineId);
 	// Handle
-	STATEMACHINE_openVAN(machineId, enable);
+	if(!STATEMACHINE_openVAN(machineId, enable)){
+		COMMANDHANDLER_sendCommandOpenVanResult(machineId, RESULT_FAILED);
+		return;
+	}
+	// Result success will be sent after Open VAN completed
 }
 static void COMMANDHANDLER_handleCommandPlayAudio(PROTOCOL_t *proto){
 	if(proto->data_len != 2){
@@ -96,19 +120,27 @@ static void COMMANDHANDLER_handleCommandPlayAudio(PROTOCOL_t *proto){
 		return;
 	}
 	uint8_t machineId = proto->data[0];
-	bool enable = (bool)proto->data[1];
+	uint8_t audioIndex = proto->data[1];
 	// Send ACK
 	COMMANDHANDLER_sendCommandPlayAudioACK(machineId);
 	// Handle
-	STATEMACHINE_openVAN(machineId, enable);
+	if(!STATEMACHINE_playSound(machineId, audioIndex)){
+		COMMANDHANDLER_sendCommandPlayAudioResult(machineId, RESULT_FAILED);
+		return;
+	}
+	COMMANDHANDLER_sendCommandPlayAudioResult(machineId, RESULT_SUCCESS);
 }
 static void COMMANDHANDLER_handleCommandUpdateRfid(PROTOCOL_t *proto){
+	RFID_t rfid;
 	uint8_t machineId = proto->data[0];
-	bool enable = (bool)proto->data[1];
+	rfid.id_len = proto->data[1];
+	memcpy(rfid.id, &proto->data[2], rfid.id_len);
+	rfid.money = ((uint16_t)proto->data[2 + rfid.id_len] << 8) | proto->data[2 + rfid.id_len + 1];
 	// Send ACK
-	COMMANDHANDLER_sendCommandUpdateRfidACK(machineId);
+	 COMMANDHANDLER_sendCommandUpdateRfidACK(machineId);
 	// Handle
-	STATEMACHINE_openVAN(machineId, enable);
+	uint8_t result = STATEMACHINE_updateRFID(machineId, &rfid);
+	COMMANDHANDLER_sendCommandUpdateRfidResult(machineId, result);
 }
 
 static void COMMANDHANDLER_sendConfigACK(uint8_t machineId){
@@ -116,6 +148,16 @@ static void COMMANDHANDLER_sendConfigACK(uint8_t machineId){
 	protocol.protocol_id = PROTOCOL_ID_CONFIG_ACK;
 	protocol.data_len = 1;
 	protocol.data[0] = machineId;
+	PROTOCOL_send(&protocol);
+}
+
+static void COMMANDHANDLER_sendConfigResult(uint8_t machineId, uint8_t result){
+	PROTOCOL_t protocol;
+	protocol.protocol_id = PROTOCOL_ID_CONFIG_RESULT;
+	protocol.data_len = 1;
+	protocol.data[0] = machineId;
+	protocol.data[1] = result;
+
 	PROTOCOL_send(&protocol);
 }
 
@@ -135,11 +177,31 @@ static void COMMANDHANDLER_sendCommandPlayAudioACK(uint8_t machineId){
 	PROTOCOL_send(&protocol);
 }
 
+static void COMMANDHANDLER_sendCommandPlayAudioResult(uint8_t machineId, uint8_t result){
+	PROTOCOL_t protocol;
+	protocol.protocol_id = PROTOCOL_ID_COMMAND_PLAY_AUDIO_RESULT;
+	protocol.data_len = 1;
+	protocol.data[0] = machineId;
+	protocol.data[1] = result;
+
+	PROTOCOL_send(&protocol);
+}
+
 static void COMMANDHANDLER_sendCommandUpdateRfidACK(uint8_t machineId){
 	PROTOCOL_t protocol;
 	protocol.protocol_id = PROTOCOL_ID_COMMAND_UPDATE_RFID_ACK;
 	protocol.data_len = 1;
 	protocol.data[0] = machineId;
+	PROTOCOL_send(&protocol);
+}
+
+static void COMMANDHANDLER_sendCommandUpdateRfidResult(uint8_t machineId, uint8_t result){
+	PROTOCOL_t protocol;
+	protocol.protocol_id = PROTOCOL_ID_COMMAND_UPDATE_RFID_RESULT;
+	protocol.data_len = 1;
+	protocol.data[0] = machineId;
+	protocol.data[1] = result;
+
 	PROTOCOL_send(&protocol);
 }
 

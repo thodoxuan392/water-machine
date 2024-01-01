@@ -12,15 +12,20 @@
 #include <stdint.h>
 
 typedef enum {
+	SOUND_FILE_WELCOME = 0,
+	SOUND_FILE_PLEASE_TAKE_A_BOTTLE,
+	SOUND_FILE_THANK_YOU
+}SOUND_File;
+
+typedef enum {
 	SOUND_ID_1 = 0,
 	SOUND_ID_2,
-}SOUND_Id_t;
+	SOUND_ID_3,
+	SOUND_ID_MAX
+}SOUND_Id;
 
 bool SOUND_init(void);
-bool SOUND_play(SOUND_Id_t id, uint32_t index);
-bool SOUND_stop(SOUND_Id_t id);
-bool SOUND_pause(SOUND_Id_t id);
-bool SOUND_resume(SOUND_Id_t id);
-bool SOUND_isError(SOUND_Id_t id);
+bool SOUND_play(SOUND_Id id, SOUND_File file);
+bool SOUND_isError(SOUND_Id id);
 
 #endif /* INC_DEVICE_SOUND_H_ */

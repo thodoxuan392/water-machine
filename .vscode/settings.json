@@ -2,6 +2,16 @@
     "files.associations": {
         "string_view": "cpp",
         "tuple": "cpp",
-        "*.tcc": "cpp"
+        "*.tcc": "cpp",
+        "array": "c",
+        "deque": "c",
+        "forward_list": "c",
+        "list": "c",
+        "string": "c",
+        "unordered_map": "c",
+        "unordered_set": "c",
+        "vector": "c",
+        "initializer_list": "c",
+        "sstream": "cpp"
     }
 }

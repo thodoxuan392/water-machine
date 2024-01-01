@@ -12,7 +12,7 @@
 #include <Hal/uart.h>
 #include <Hal/timer.h>
 
-#define PROTOCOL_UART 	UART_1
+#define PROTOCOL_UART 	UART_2
 
 static void PROTOCOL_timerInterrupt1ms(void);
 static uint8_t PROTOCOL_parse(uint8_t * data, size_t data_len, PROTOCOL_t *proto);
@@ -90,4 +90,5 @@ static void PROTOCOL_serialize(PROTOCOL_t * proto, uint8_t *data, size_t * data_
 	}
 	data[data_len_temp++] = PROTOCOL_calCheckSum(proto->data, proto->data_len);
 	data[data_len_temp++] = STOP_BYTE;
+	*data_len = data_len_temp;
 }

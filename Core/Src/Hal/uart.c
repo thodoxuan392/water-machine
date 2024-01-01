@@ -106,7 +106,7 @@ bool UART_init(){
 	return success;
 }
 bool UART_send(UART_id_t id, uint8_t *data , size_t len){
-	HAL_UART_Transmit(uart_table[id].huart_p, data, len, 0xFFFF);
+	HAL_UART_Transmit(uart_table[id].huart_p, data, len, 100);
 }
 bool UART_receive_available(UART_id_t id){
 	return utils_buffer_is_available(uart_table[id].buffer);
@@ -125,7 +125,7 @@ void UART_clear_buffer(UART_id_t id){
 void UART_test(){
 	while(1){
 		HAL_Delay(1000);
-		UART_send(UART_4, "AT\r\n", 4);
+		UART_send(UART_1, "AT\r\n", 4);
 		utils_log_info("Sending AT command\r\n");
 	}
 }

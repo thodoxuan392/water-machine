@@ -28,34 +28,34 @@ void I2C_init(){
 	}
 }
 
-bool I2C_write(uint8_t address, uint8_t * data_w, size_t w_len){
+bool I2C_write(I2C_Id_t id, uint8_t address, uint8_t * data_w, size_t w_len){
 	// Write
 	bool success = HAL_I2C_Master_Transmit(&hi2c1, address, data_w, w_len, I2C_TIMEOUT) == HAL_OK;
 	return success;
 }
 
-bool I2C_read(uint8_t address, uint8_t * data_r, size_t r_len){
+bool I2C_read(I2C_Id_t id, uint8_t address, uint8_t * data_r, size_t r_len){
 	// Read
 	bool success = HAL_I2C_Master_Receive(&hi2c1, address, data_r, r_len, I2C_TIMEOUT) == HAL_OK;
 	return success;
 }
 
-bool I2C_write_and_read(uint8_t address, uint8_t * data_w, size_t w_len, uint8_t * data_r, size_t r_len){
+bool I2C_write_and_read(I2C_Id_t id, uint8_t address, uint8_t * data_w, size_t w_len, uint8_t * data_r, size_t r_len){
 	// Write
-	bool success = I2C_write(address, data_w, w_len);
+	bool success = I2C_write(id, address, data_w, w_len);
 	// Read
-	success = I2C_read(address, data_r, r_len) && success;
+	success = I2C_read(id, address, data_r, r_len) && success;
 	return success;
 }
 
 
-bool I2C_mem_write(uint8_t address, uint16_t mem_address, uint16_t mem_size, uint8_t * data_w, size_t w_len){
+bool I2C_mem_write(I2C_Id_t id, uint8_t address, uint16_t mem_address, uint16_t mem_size, uint8_t * data_w, size_t w_len){
 	// Write
 	bool success = HAL_I2C_Mem_Write(&hi2c1, address, mem_address, mem_size, data_w, w_len, I2C_TIMEOUT);
 	return success;
 }
 
-bool I2C_mem_read(uint8_t address, uint16_t mem_address, uint16_t mem_size, uint8_t * data_w, size_t w_len){
+bool I2C_mem_read(I2C_Id_t id, uint8_t address, uint16_t mem_address, uint16_t mem_size, uint8_t * data_w, size_t w_len){
 	// Write
 	bool success = HAL_I2C_Mem_Read(&hi2c1, address, mem_address, mem_size, data_w, w_len, I2C_TIMEOUT);
 	return success;

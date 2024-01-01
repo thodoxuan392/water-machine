@@ -26,15 +26,21 @@
 #include "Hal/timer.h"
 #include "Hal/i2c.h"
 #include "Hal/uart.h"
+#include "Hal/spi.h"
+#include "Hal/watchdog.h"
 #include "Device/eeprom.h"
 #include "Device/placedpoint.h"
 #include "Device/rfid.h"
 #include "Device/sound.h"
 #include "Device/waterflow.h"
+#include "DeviceManager/vanmanager.h"
+#include "App/protocol.h"
 #include "App/commandhandler.h"
 #include "App/schedulerport.h"
 #include "App/statusreporter.h"
 #include "App/statemachine.h"
+#include "Lib/scheduler/scheduler.h"
+
 
 /* USER CODE END Includes */
 
@@ -47,13 +53,6 @@
 /* USER CODE BEGIN PD */
 /* USER CODE END PD */
 
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
-/* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
@@ -81,13 +80,11 @@ int main(void)
   // Hal init
   CLOCK_init();
   GPIO_init();
+  I2C_init();
   TIMER_init();
   UART_init();
-  I2C_init();
-  WATCHDOG_init();
-  // Init
-  CONFIG_init();
-  SCHEDULERPORT_init();
+  SPI_init();
+//  WATCHDOG_init();
 
   // Device Init
   EEPROM_init();
@@ -95,19 +92,23 @@ int main(void)
   RFID_init();
   SOUND_init();
   WATERFLOW_init();
+  SOLENOID_init();
   // Device Manager Init
+  VANMANAGER_init();
+
   // App Init
+  SCHEDULERPORT_init();
   COMMANDHANDLER_init();
   SCHEDULERPORT_init();
   STATUSREPORTER_init();
   STATEMACHINE_init();
   /* USER CODE END Init */
-
   /* USER CODE BEGIN 2 */
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+//  SPI_test();
 //  UART_test();
 //  RTC_test();
 //  EEPROM_test();
@@ -118,15 +119,21 @@ int main(void)
 //  TIMER_test();
   while (1)
   {
-//	  WATCHDOG_refresh();
-//	  STATEMACHINE_run();
+//	WATCHDOG_refresh();
+	// App
+//	STATEMACHINE_run();
+//	PROTOCOL_run();
+//	STATUSREPORTER_run();
+//	COMMANDHANDLER_run();
+//	SCH_Dispatch_Tasks();
+	// Device
+	RFID_run();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
 }
-
 
 /* USER CODE BEGIN 4 */
 
