@@ -10,7 +10,7 @@
 #include "App/protocol.h"
 #include "Lib/scheduler/scheduler.h"
 
-#define STATUSREPORT_INTERVAL		500 	// 1s
+#define STATUSREPORT_INTERVAL		2000 	// 1s
 
 static bool timeout_flag = true;
 
@@ -29,8 +29,9 @@ bool STATUSREPORTER_run(){
 	if(timeout_flag){
 		timeout_flag = false;
 		// Publish status
-		STATUSREPORTER_report_status(MACHINE_ID_1);
-		STATUSREPORTER_report_status(MACHINE_ID_2);
+		for (int id = 0; id < MACHINE_ID_MAX; ++id) {
+			STATUSREPORTER_report_status(id);
+		}
 		SCH_Add_Task(STATUSREPORTER_timeout, STATUSREPORT_INTERVAL, 0);
 	}
 }

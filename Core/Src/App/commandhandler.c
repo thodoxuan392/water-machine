@@ -79,7 +79,7 @@ void COMMANDHANDLER_run(){
 void COMMANDHANDLER_sendCommandOpenVanResult(uint8_t machineId, uint8_t result){
 	PROTOCOL_t protocol;
 	protocol.protocol_id = PROTOCOL_ID_COMMAND_OPEN_VAN_RESULT;
-	protocol.data_len = 1;
+	protocol.data_len = 2;
 	protocol.data[0] = machineId;
 	protocol.data[1] = result;
 
@@ -99,16 +99,16 @@ static void COMMANDHANDLER_handleConfig(PROTOCOL_t *proto){
 	COMMANDHANDLER_sendConfigResult(machineId, RESULT_SUCCESS);
 }
 static void COMMANDHANDLER_handleCommandOpenVan(PROTOCOL_t *proto){
-	if(proto->data_len != 2){
-		utils_log_error("HandleCommandOpenVan failed: Invalid data_len %d, expected 2\r\n", proto->data_len);
+	if(proto->data_len != 3){
+		utils_log_error("HandleCommandOpenVan failed: Invalid data_len %d, expected 3\r\n", proto->data_len);
 		return;
 	}
 	uint8_t machineId = proto->data[0];
-	bool enable = (bool)proto->data[1];
+	uint16_t volume = ((uint16_t)proto->data[1] << 8) | proto->data[2];
 	// Send ACK
 	COMMANDHANDLER_sendCommandOpenVanACK(machineId);
 	// Handle
-	if(!STATEMACHINE_openVAN(machineId, enable)){
+	if(!STATEMACHINE_openVAN(machineId, volume)){
 		COMMANDHANDLER_sendCommandOpenVanResult(machineId, RESULT_FAILED);
 		return;
 	}
@@ -154,7 +154,7 @@ static void COMMANDHANDLER_sendConfigACK(uint8_t machineId){
 static void COMMANDHANDLER_sendConfigResult(uint8_t machineId, uint8_t result){
 	PROTOCOL_t protocol;
 	protocol.protocol_id = PROTOCOL_ID_CONFIG_RESULT;
-	protocol.data_len = 1;
+	protocol.data_len = 2;
 	protocol.data[0] = machineId;
 	protocol.data[1] = result;
 
@@ -180,7 +180,7 @@ static void COMMANDHANDLER_sendCommandPlayAudioACK(uint8_t machineId){
 static void COMMANDHANDLER_sendCommandPlayAudioResult(uint8_t machineId, uint8_t result){
 	PROTOCOL_t protocol;
 	protocol.protocol_id = PROTOCOL_ID_COMMAND_PLAY_AUDIO_RESULT;
-	protocol.data_len = 1;
+	protocol.data_len = 2;
 	protocol.data[0] = machineId;
 	protocol.data[1] = result;
 
@@ -198,7 +198,7 @@ static void COMMANDHANDLER_sendCommandUpdateRfidACK(uint8_t machineId){
 static void COMMANDHANDLER_sendCommandUpdateRfidResult(uint8_t machineId, uint8_t result){
 	PROTOCOL_t protocol;
 	protocol.protocol_id = PROTOCOL_ID_COMMAND_UPDATE_RFID_RESULT;
-	protocol.data_len = 1;
+	protocol.data_len = 2;
 	protocol.data[0] = machineId;
 	protocol.data[1] = result;
 

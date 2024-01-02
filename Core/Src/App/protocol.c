@@ -9,13 +9,16 @@
 #include <App/protocol.h>
 #include <Lib/utils/utils_buffer.h>
 
+#include <string.h>
+
 #include <Hal/uart.h>
 #include <Hal/timer.h>
 
-#define PROTOCOL_UART 	UART_2
+#define PROTOCOL_UART 	UART_3
+#define PROTOCOL_BUFFER_MAX		128
 
 static void PROTOCOL_timerInterrupt1ms(void);
-static uint8_t PROTOCOL_parse(uint8_t * data, size_t data_len, PROTOCOL_t *proto);
+static bool PROTOCOL_parse(uint8_t * data, size_t data_len, PROTOCOL_t *proto);
 static uint8_t PROTOCOL_calCheckSum(uint8_t *data, uint8_t data_len);
 static void PROTOCOL_serialize(PROTOCOL_t * proto, uint8_t *data, size_t * data_len);
 
@@ -39,6 +42,10 @@ void PROTOCOL_run(void){
 		rx_buffer[rx_buffer_len++] = UART_receive_data(PROTOCOL_UART);
 		if(PROTOCOL_parse(rx_buffer, rx_buffer_len, &PROTOCOL_message)){
 			utils_buffer_push(&PROTOCOL_rxMessage, &PROTOCOL_message);
+			rx_buffer_len = 0;
+		}else if (rx_buffer_len > PROTOCOL_BUFFER_MAX){
+			// Buffer is too big, but cannot parse -> Cleaning up
+			rx_buffer_len = 0;
 		}
 	}
 	if(rx_timeout){
@@ -53,7 +60,10 @@ void PROTOCOL_send(PROTOCOL_t *proto){
 }
 
 bool PROTOCOL_receive(PROTOCOL_t * proto){
-	return utils_buffer_pop(&PROTOCOL_rxMessage, proto);
+	if(utils_buffer_is_available(&PROTOCOL_rxMessage)){
+		return utils_buffer_pop(&PROTOCOL_rxMessage, proto);
+	}
+	return false;
 }
 
 static void PROTOCOL_timerInterrupt1ms(void){
@@ -65,8 +75,26 @@ static void PROTOCOL_timerInterrupt1ms(void){
 	}
 }
 
-static uint8_t PROTOCOL_parse(uint8_t * data, size_t data_len, PROTOCOL_t *proto){
-
+static bool PROTOCOL_parse(uint8_t * data, size_t data_len, PROTOCOL_t *proto){
+	if(data[0] != START_BYTE){
+		return false;
+	}
+	uint8_t dataL = data[2];
+	uint8_t expectedChecksum = PROTOCOL_calCheckSum(&data[3], dataL);
+	uint8_t checksum = data[3 + dataL];
+	if(expectedChecksum != checksum){
+		return false;
+	}
+	if(data[4 + dataL] != STOP_BYTE){
+		return false;
+	}
+	if(data_len < 5 + dataL){
+		return false;
+	}
+	proto->protocol_id = data[1];
+	memcpy(proto->data, &data[3], dataL);
+	proto->data_len = dataL;
+	return true;
 }
 
 static uint8_t PROTOCOL_calCheckSum(uint8_t *data, uint8_t data_len){

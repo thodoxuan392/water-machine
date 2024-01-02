@@ -33,8 +33,8 @@ UART_HandleTypeDef huart1 = {
 
 UART_HandleTypeDef huart2 = {
 	.Instance = USART2,
-	.Init.BaudRate = 9600,
-	.Init.WordLength = UART_WORDLENGTH_9B,
+	.Init.BaudRate = 115200,
+	.Init.WordLength = UART_WORDLENGTH_8B,
 	.Init.StopBits = UART_STOPBITS_1,
 	.Init.Parity = UART_PARITY_NONE,
 	.Init.Mode = UART_MODE_TX_RX,
@@ -95,7 +95,7 @@ bool UART_init(){
 	success = (HAL_UART_Init(uart_table[UART_4].huart_p) == HAL_OK) && success;
 	// Init buffer
 	success = utils_buffer_init(uart_table[UART_1].buffer, sizeof(uint8_t)) && success;
-	success = utils_buffer_init(uart_table[UART_2].buffer, sizeof(uint16_t)) && success;
+	success = utils_buffer_init(uart_table[UART_2].buffer, sizeof(uint8_t)) && success;
 	success = utils_buffer_init(uart_table[UART_3].buffer, sizeof(uint8_t)) && success;
 	success = utils_buffer_init(uart_table[UART_4].buffer, sizeof(uint8_t)) && success;
 
@@ -125,7 +125,7 @@ void UART_clear_buffer(UART_id_t id){
 void UART_test(){
 	while(1){
 		HAL_Delay(1000);
-		UART_send(UART_1, "AT\r\n", 4);
+		UART_send(UART_3, "AT\r\n", 4);
 		utils_log_info("Sending AT command\r\n");
 	}
 }

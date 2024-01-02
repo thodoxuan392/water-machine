@@ -97,6 +97,7 @@ int main(void)
   VANMANAGER_init();
 
   // App Init
+  PROTOCOL_init();
   SCHEDULERPORT_init();
   COMMANDHANDLER_init();
   SCHEDULERPORT_init();
@@ -121,11 +122,12 @@ int main(void)
   {
 //	WATCHDOG_refresh();
 	// App
-//	STATEMACHINE_run();
-//	PROTOCOL_run();
-//	STATUSREPORTER_run();
-//	COMMANDHANDLER_run();
-//	SCH_Dispatch_Tasks();
+	STATEMACHINE_run();
+	PROTOCOL_run();
+	STATUSREPORTER_run();
+	COMMANDHANDLER_run();
+	SCH_Dispatch_Tasks();
+	VANMANAGER_run();
 	// Device
 	RFID_run();
     /* USER CODE END WHILE */
