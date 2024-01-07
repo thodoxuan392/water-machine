@@ -85,6 +85,10 @@ bool STATEMACHINE_openVAN(MACHINE_Id_t id, uint16_t volume){
 	return VANMANAGER_openVan(id, volume);
 }
 
+bool STATEMACHINE_cancelOpenVAN(MACHINE_Id_t id){
+	return VANMANAGER_cancelOpenVan(id);
+}
+
 bool STATEMACHINE_playSound(MACHINE_Id_t id, uint32_t soundIndex){
 	return SOUND_play(machine[id].sound_id, soundIndex);
 }

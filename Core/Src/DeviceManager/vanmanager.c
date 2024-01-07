@@ -26,6 +26,7 @@ typedef struct {
 	SOLENOID_Id solenoid_id;
 	WATERFLOW_Id_t waterflow_id;
 	bool openVanRequested;
+	bool cancelOpenVanRequested;
 	uint16_t volumeRequested;
 	uint16_t volumeFlushed;
 	VANMANAGER_State state;
@@ -81,11 +82,18 @@ void VANMANAGER_setOnOpenVanCompletedCallback(VANMANAGER_onOpenVanCompletedCallb
 }
 
 bool VANMANAGER_openVan(SOLENOID_Id id, uint16_t volume){
-	if(VANMANAGER_handleTable[id].state!= VANMANAGER_IDLE){
+	if(VANMANAGER_handleTable[id].state != VANMANAGER_IDLE){
 		return false;
 	}
 	VANMANAGER_handleTable[id].openVanRequested = true;
 	VANMANAGER_handleTable[id].volumeRequested = volume;
+	return true;
+}
+
+bool VANMANAGER_cancelOpenVan(SOLENOID_Id id){
+	if(VANMANAGER_handleTable[id].state != VANMANAGER_IDLE){
+		VANMANAGER_handleTable[id].cancelOpenVanRequested = true;
+	}
 	return true;
 }
 
@@ -108,6 +116,7 @@ static void VANMANAGER_runByHandle(VANMANAGER_Handle* handle){
 
 static void VANMANAGER_runIdle(VANMANAGER_Handle* handle){
 	if(handle->openVanRequested){
+		handle->openVanRequested = false;
 		handle->state = VANMANAGER_OPEN_VAN;
 	}
 }
@@ -124,7 +133,6 @@ static void VANMANAGER_runOpenVan(VANMANAGER_Handle* handle){
 static void VANMANAGER_runWaitForOpenVanDone(VANMANAGER_Handle* handle){
 	if(handle->volumeFlushed >= handle->volumeRequested){
 		SOLENOID_set(handle->solenoid_id, false);
-		handle->openVanRequested = false;
 		handle->state = VANMANAGER_IDLE;
 		if(VANMANAGER_onCompletedCallback){
 			// Complete success callback
@@ -133,7 +141,15 @@ static void VANMANAGER_runWaitForOpenVanDone(VANMANAGER_Handle* handle){
 	}
 	if(handle->openVanTimeoutFlag){
 		SOLENOID_set(handle->solenoid_id, false);
-		handle->openVanRequested = false;
+		handle->state = VANMANAGER_IDLE;
+		if(VANMANAGER_onCompletedCallback){
+			// Complete failed callback
+			VANMANAGER_onCompletedCallback(handle->solenoid_id, false);
+		}
+	}
+	if(handle->cancelOpenVanRequested){
+		SOLENOID_set(handle->solenoid_id, false);
+		handle->cancelOpenVanRequested = false;
 		handle->state = VANMANAGER_IDLE;
 		if(VANMANAGER_onCompletedCallback){
 			// Complete failed callback

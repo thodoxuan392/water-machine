@@ -10,7 +10,7 @@
 #include "App/protocol.h"
 #include "Lib/scheduler/scheduler.h"
 
-#define STATUSREPORT_INTERVAL		2000 	// 1s
+#define STATUSREPORT_INTERVAL		1000 	// 1s
 
 static bool timeout_flag = true;
 

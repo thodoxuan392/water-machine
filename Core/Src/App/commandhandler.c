@@ -31,6 +31,7 @@ enum {
 
 static void COMMANDHANDLER_handleConfig(PROTOCOL_t *proto);
 static void COMMANDHANDLER_handleCommandOpenVan(PROTOCOL_t *proto);
+static void COMMANDHANDLER_handleCommandCancelOpenVan(PROTOCOL_t *proto);
 static void COMMANDHANDLER_handleCommandPlayAudio(PROTOCOL_t *proto);
 static void COMMANDHANDLER_handleCommandUpdateRfid(PROTOCOL_t *proto);
 
@@ -40,6 +41,9 @@ static void COMMANDHANDLER_sendConfigResult(uint8_t machineId, uint8_t result);
 
 
 static void COMMANDHANDLER_sendCommandOpenVanACK(uint8_t machineId);
+
+static void COMMANDHANDLER_sendCommandCancelOpenVanACK(uint8_t machineId);
+static void COMMANDHANDLER_sendCommandCancelOpenVanResult(uint8_t machineId, uint8_t result);
 
 static void COMMANDHANDLER_sendCommandPlayAudioACK(uint8_t machineId);
 static void COMMANDHANDLER_sendCommandPlayAudioResult(uint8_t machineId, uint8_t result);
@@ -63,6 +67,9 @@ void COMMANDHANDLER_run(){
 				break;
 			case PROTOCOL_ID_COMMAND_OPEN_VAN:
 				COMMANDHANDLER_handleCommandOpenVan(&receive_message);
+				break;
+			case PROTOCOL_ID_COMMAND_CANCEL_OPEN_VAN:
+				COMMANDHANDLER_handleCommandCancelOpenVan(&receive_message);
 				break;
 			case PROTOCOL_ID_COMMAND_PLAY_AUDIO:
 				COMMANDHANDLER_handleCommandPlayAudio(&receive_message);
@@ -114,6 +121,23 @@ static void COMMANDHANDLER_handleCommandOpenVan(PROTOCOL_t *proto){
 	}
 	// Result success will be sent after Open VAN completed
 }
+
+static void COMMANDHANDLER_handleCommandCancelOpenVan(PROTOCOL_t *proto){
+	if(proto->data_len != 1){
+		utils_log_error("HandleCommandCancelOpenVan failed: Invalid data_len %d, expected 31\r\n", proto->data_len);
+		return;
+	}
+	uint8_t machineId = proto->data[0];
+	// Send ACK
+	COMMANDHANDLER_sendCommandCancelOpenVanACK(machineId);
+	// Handle
+	if(!STATEMACHINE_cancelOpenVAN(machineId)){
+		COMMANDHANDLER_sendCommandCancelOpenVanResult(machineId, RESULT_FAILED);
+		return;
+	}
+	COMMANDHANDLER_sendCommandCancelOpenVanResult(machineId, RESULT_SUCCESS);
+}
+
 static void COMMANDHANDLER_handleCommandPlayAudio(PROTOCOL_t *proto){
 	if(proto->data_len != 2){
 		utils_log_error("HandleCommandPlayAudio failed: Invalid data_len %d, expected 2\r\n", proto->data_len);
@@ -166,6 +190,25 @@ static void COMMANDHANDLER_sendCommandOpenVanACK(uint8_t machineId){
 	protocol.protocol_id = PROTOCOL_ID_COMMAND_OPEN_VAN_ACK;
 	protocol.data_len = 1;
 	protocol.data[0] = machineId;
+	PROTOCOL_send(&protocol);
+}
+
+
+static void COMMANDHANDLER_sendCommandCancelOpenVanACK(uint8_t machineId){
+	PROTOCOL_t protocol;
+	protocol.protocol_id = PROTOCOL_ID_COMMAND_CANCEL_OPEN_VAN_ACK;
+	protocol.data_len = 1;
+	protocol.data[0] = machineId;
+	PROTOCOL_send(&protocol);
+}
+
+static void COMMANDHANDLER_sendCommandCancelOpenVanResult(uint8_t machineId, uint8_t result){
+	PROTOCOL_t protocol;
+	protocol.protocol_id = PROTOCOL_ID_COMMAND_CANCEL_OPEN_VAN_RESULT;
+	protocol.data_len = 2;
+	protocol.data[0] = machineId;
+	protocol.data[1] = result;
+
 	PROTOCOL_send(&protocol);
 }
 

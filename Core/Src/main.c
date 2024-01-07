@@ -118,6 +118,7 @@ int main(void)
 //  CONFIG_clear();
 //  WATCHDOG_test();
 //  TIMER_test();
+//  RFID_test();
   while (1)
   {
 //	WATCHDOG_refresh();

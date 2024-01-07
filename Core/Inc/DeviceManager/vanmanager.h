@@ -18,5 +18,6 @@ typedef void (*VANMANAGER_onOpenVanCompletedCallback)(uint8_t solenoidId, bool s
 void VANMANAGER_init(void);
 void VANMANAGER_setOnOpenVanCompletedCallback(VANMANAGER_onOpenVanCompletedCallback callback);
 bool VANMANAGER_openVan(SOLENOID_Id id, uint16_t volume);
+bool VANMANAGER_cancelOpenVan(SOLENOID_Id id);
 
 #endif /* INC_DEVICEMANAGER_VANMANAGER_H_ */
