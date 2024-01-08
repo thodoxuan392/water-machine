@@ -28,7 +28,6 @@ static uint8_t rx_buffer[RX_BUFFER_MAX_LENGTH];
 static uint8_t rx_buffer_len = 0;
 static uint8_t tx_buffer[TX_BUFFER_MAX_LENGTH];
 static uint32_t rx_time_cnt = 0;
-static bool rx_timeout = false;
 
 static void PROTOCOL_onUARTCallback(void);
 
@@ -39,7 +38,6 @@ void PROTOCOL_init(void){
 }
 
 void PROTOCOL_run(void){
-
 }
 
 void PROTOCOL_send(PROTOCOL_t *proto){
@@ -59,7 +57,8 @@ static void PROTOCOL_timerInterrupt1ms(void){
 	if(rx_time_cnt > 0){
 		rx_time_cnt--;
 		if(rx_time_cnt == 0){
-			rx_timeout = true;
+			rx_buffer_len = 0;
+			UART_clear_buffer(PROTOCOL_UART);
 		}
 	}
 }
@@ -113,7 +112,6 @@ static void PROTOCOL_serialize(PROTOCOL_t * proto, uint8_t *data, size_t * data_
 static void PROTOCOL_onUARTCallback(void){
 	if(UART_receive_available(PROTOCOL_UART)){
 		rx_time_cnt = RX_TIMEOUT_MS;
-		rx_timeout = false;
 		rx_buffer[rx_buffer_len++] = UART_receive_data(PROTOCOL_UART);
 		if(PROTOCOL_parse(rx_buffer, rx_buffer_len, &PROTOCOL_message)){
 			utils_buffer_push(&PROTOCOL_rxMessage, &PROTOCOL_message);
@@ -122,8 +120,5 @@ static void PROTOCOL_onUARTCallback(void){
 			// Buffer is too big, but cannot parse -> Cleaning up
 			rx_buffer_len = 0;
 		}
-	}
-	if(rx_timeout){
-		rx_buffer_len = 0;
 	}
 }
