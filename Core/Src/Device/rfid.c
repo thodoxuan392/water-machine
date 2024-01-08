@@ -95,17 +95,17 @@ void RFID_clearDetected(RFID_Id_t id){
 }
 
 RFID_Error_t RFID_set(RFID_Id_t id, RFID_t * rfid){
-//	// Check RFID is available
-//	if(!RFID_handleTable[id].isPlaced){
-//		return RFID_ERROR_NOT_AVAILABLE;
-//	}
-//	// Check RFID uid is matched
-//	if(rfid->id_len != RFID_handleTable[id].rfid.id_len){
-//		return RFID_ERROR_INVALID_FORMAT;
-//	}
-//	if(memcmp(rfid->id, RFID_handleTable[id].rfid.id, rfid->id_len) != 0){
-//		return RFID_ERROR_ID_NOT_MATCHED;
-//	}
+	// Check RFID is available
+	if(!RFID_handleTable[id].isPlaced){
+		return RFID_ERROR_NOT_AVAILABLE;
+	}
+	// Check RFID uid is matched
+	if(rfid->id_len != RFID_handleTable[id].rfid.id_len){
+		return RFID_ERROR_INVALID_FORMAT;
+	}
+	if(memcmp(rfid->id, RFID_handleTable[id].rfid.id, rfid->id_len) != 0){
+		return RFID_ERROR_ID_NOT_MATCHED;
+	}
 	uint8_t writeData[16] = {0};
 	RFID_buildToBlockData(rfid, writeData, sizeof(writeData));
 	if(!PN532_readPassiveTargetID(&RFID_handleTable[id], PN532_MIFARE_ISO14443A, rfid->id, &rfid->id_len, 50)){
@@ -132,7 +132,7 @@ void RFID_test(void){
 	RFID_t rfid = {
 		.id = {163, 52, 18, 8},
 		.id_len = 4,
-		.money = 200,
+		.money = 200000,
 		.issueDate = { 24, 1, 7},
 		.expireDate = { 25, 1, 7},
 	};
@@ -201,7 +201,9 @@ static void RFID_buildToBlockData(RFID_t *rfid, uint8_t *data, uint32_t data_len
 		return;
 	}
 	uint8_t data_len_out = 0;
-	data[data_len_out++] = (rfid->money >> 8 & 0xFF);
+	data[data_len_out++] = (rfid->money >> 24) & 0xFF;
+	data[data_len_out++] = (rfid->money >> 16) & 0xFF;
+	data[data_len_out++] = (rfid->money >> 8) & 0xFF;
 	data[data_len_out++] = rfid->money & 0xFF;
 	data[data_len_out++] = rfid->issueDate[0];
 	data[data_len_out++] = rfid->issueDate[1];
@@ -222,22 +224,25 @@ static bool RFID_parseFromBlockData(uint8_t *data, uint32_t data_len, RFID_t *rf
 	if(data_len != 16){
 		return false;
 	}
-	rfid->money = (uint16_t)data[0] << 8  | data[1];
-	rfid->issueDate[0] = data[2];
-	rfid->issueDate[1] = data[3];
-	rfid->issueDate[2] = data[4];
-	rfid->expireDate[0] = data[5];
-	rfid->expireDate[1] = data[6];
-	rfid->expireDate[2] = data[7];
+	rfid->money = (uint32_t)data[0] << 24  |
+					(uint32_t)data[1] << 16  |
+					(uint32_t)data[2] << 8  |
+					data[3];
+	rfid->issueDate[0] = data[4];
+	rfid->issueDate[1] = data[5];
+	rfid->issueDate[2] = data[6];
+	rfid->expireDate[0] = data[7];
+	rfid->expireDate[1] = data[8];
+	rfid->expireDate[2] = data[9];
 
 
-	uint16_t dataKey = RFID_getBlockDataKey(data, 8);
-	uint16_t expectedDataKey = ((uint16_t)data[8] << 8) | data[9];
+	uint16_t dataKey = RFID_getBlockDataKey(data, 10);
+	uint16_t expectedDataKey = ((uint16_t)data[10] << 8) | data[11];
 	if(dataKey != expectedDataKey){
 		return false;
 	}
 
-	uint8_t idKey = data[10];
+	uint8_t idKey = data[12];
 	uint8_t expectedIdKey = RFID_getIdKey(rfid->id, rfid->id_len);
 
 	if(idKey != expectedIdKey){

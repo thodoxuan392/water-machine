@@ -32,7 +32,7 @@ typedef enum {
 typedef struct {
 	uint8_t id[RFID_ID_MAX_LENGTH];
 	uint8_t id_len;
-	uint16_t money;
+	uint32_t money;
 	uint8_t issueDate[3];	// [0]: Year, [1] Month, [2] Date
 	uint8_t expireDate[3];
 }RFID_t;
