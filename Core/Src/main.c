@@ -49,10 +49,7 @@
 
 /* USER CODE END PTD */
 
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-/* USER CODE END PD */
-
+/* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
@@ -84,7 +81,6 @@ int main(void)
   TIMER_init();
   UART_init();
   SPI_init();
-//  WATCHDOG_init();
 
   // Device Init
   EEPROM_init();
@@ -119,9 +115,10 @@ int main(void)
 //  WATCHDOG_test();
 //  TIMER_test();
 //  RFID_test();
+//	WATERFLOW_test();
+//  SOUND_test();
   while (1)
   {
-//	WATCHDOG_refresh();
 	// App
 	STATEMACHINE_run();
 	PROTOCOL_run();
@@ -131,6 +128,8 @@ int main(void)
 	VANMANAGER_run();
 	// Device
 	RFID_run();
+	SOUND_run();
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

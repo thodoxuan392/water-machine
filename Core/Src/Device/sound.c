@@ -13,9 +13,12 @@
 #include <Hal/uart.h>
 #include <Hal/timer.h>
 
-#define SOUND_INITIALIZATION_TIME_MS			3000
-#define SOUND_DELAY_BETWEEN_PLAYING_TRACKS_MS	100
-#define SOUND_COMMAND_TIMEOUT					1000
+#define SOUND_INITIALIZATION_TIME_MS			3000	// 3s
+#define SOUND_DELAY_BETWEEN_PLAYING_TRACKS_MS	100		// 100ms
+#define SOUND_COMMAND_TIMEOUT					1000	// 1s
+#define SOUND_TIME_BETWEEN_CMD_MS				100		// 100ms
+#define SOUND_PLAY_TIMEOUT_MS					30000	// 30s
+
 #define SOUND_RX_BUFFER_LEN			128
 
 #define SOUND_START_BYTE		0x7E
@@ -90,6 +93,10 @@ typedef struct {
 	uint8_t rxBuffer[SOUND_RX_BUFFER_LEN];
 	uint32_t rxBufferLen;
 	bool error;
+	bool busy;
+
+	uint32_t lastCmd;
+	uint32_t lastPlayTime;
 }SOUND_Handle;
 
 static void SOUND_timerInterrupt1ms(void);
@@ -98,9 +105,14 @@ static void SOUND_clearRxBuffer(SOUND_Handle * handle);
 static void SOUND_sendProtocol(SOUND_Handle * handle, SOUND_Protocol * protocol);
 static bool SOUND_waitProtocolFeedback(SOUND_Handle * handle, SOUND_Protocol * protocol, uint32_t timeout);
 static bool SOUND_parseProtocol(uint8_t *data, uint32_t data_len, SOUND_Protocol * protocol);
+static uint16_t SOUND_calCheckSumByProtocol(SOUND_Protocol *protocol);
+static uint16_t SOUND_calCheckSumByBuffer(uint8_t * buf, size_t buf_size);
+
 
 static bool SOUND_initById(SOUND_Id id);
+static bool SOUND_runById(SOUND_Id id);
 static bool SOUND_reset(SOUND_Handle * handle);
+static bool SOUND_setNormalWorking(SOUND_Handle * handle);
 static bool SOUND_setDefaultEQ(SOUND_Handle * handle);
 static bool SOUND_setDefaultPlaybackMode(SOUND_Handle * handle);
 static bool SOUND_setDefaultVolume(SOUND_Handle * handle);
@@ -118,7 +130,7 @@ static SOUND_Handle SOUND_handleTable[] = {
 			.uartId = UART_3
 		},
 		[SOUND_ID_3] = {
-			.id = SOUND_ID_2,
+			.id = SOUND_ID_3,
 			.uartId = UART_4
 		},
 };
@@ -130,17 +142,36 @@ bool SOUND_init(void){
 	}
 }
 
+bool SOUND_run(void){
+	for (int id = 0; id < SOUND_ID_MAX; ++id) {
+		SOUND_runById(id);
+	}
+}
+
 bool SOUND_play(SOUND_Id id, SOUND_File file){
-	SOUND_playSpecifyFile(&SOUND_handleTable[id], file);
+	return SOUND_playSpecifyFile(&SOUND_handleTable[id], file);
 }
 
 bool SOUND_isError(SOUND_Id id){
 	return SOUND_handleTable[id].error;
 }
 
+
+void SOUND_test(void){
+	while(1){
+		SOUND_run();
+		SOUND_play(SOUND_ID_1, SOUND_FILE_PLEASE_TAKE_A_BOTTLE);
+		SOUND_play(SOUND_ID_2, SOUND_FILE_PLEASE_TAKE_A_BOTTLE);
+		SOUND_play(SOUND_ID_3, SOUND_FILE_PLEASE_TAKE_A_BOTTLE);
+	}
+}
+
 static bool SOUND_initById(SOUND_Id id){
 	if(!SOUND_reset(&SOUND_handleTable[id])){
 		utils_log_error("Couldn't reset Sound module\r\n");
+	}
+	if(!SOUND_setNormalWorking(&SOUND_handleTable[id])){
+		utils_log_error("Couldn't set Normal working\r\n");
 	}
 	if(!SOUND_setDefaultEQ(&SOUND_handleTable[id])){
 		utils_log_error("Couldn't set Sound EQ\r\n");
@@ -153,6 +184,21 @@ static bool SOUND_initById(SOUND_Id id){
 	}
 	if(!SOUND_setDefaultPlaybackSource(&SOUND_handleTable[id])){
 		utils_log_error("Couldn't reset Sound playback source\r\n");
+	}
+	return true;
+}
+
+static bool SOUND_runById(SOUND_Id id){
+	SOUND_Protocol protocol;
+	if(SOUND_waitProtocolFeedback(&SOUND_handleTable[id], &protocol, 1)){
+		if(protocol.command == SOUND_QUERY_TFCARD_STAY){
+			// Audio play finished
+			SOUND_handleTable[id].busy = false;
+		}
+	}
+	// If device busy and play time is over -> Make sound is not busy
+	if(SOUND_handleTable[id].busy && (HAL_GetTick() - SOUND_handleTable[id].lastPlayTime > SOUND_PLAY_TIMEOUT_MS)){
+		SOUND_handleTable[id].busy = false;
 	}
 }
 
@@ -169,32 +215,43 @@ static void SOUND_timerInterrupt1ms(void){
 
 static void SOUND_clearRxBuffer(SOUND_Handle * handle){
 	handle->rxBufferLen = 0;
+	UART_clear_buffer(handle->uartId);
 }
 
 static void SOUND_sendProtocol(SOUND_Handle * handle, SOUND_Protocol * protocol){
+	// Clear RX buffer
+	while(HAL_GetTick() -handle->lastCmd < SOUND_TIME_BETWEEN_CMD_MS);
+	SOUND_clearRxBuffer(handle);
+
 	protocol->start_byte = SOUND_START_BYTE;
 	protocol->version = 0xFF;
 	protocol->len = 0x06;
 	protocol->stop_byte = SOUND_STOP_BYTE;
+	uint16_t checksum = SOUND_calCheckSumByProtocol(protocol);
+	protocol->checksum[0] = checksum >> 8;
+	protocol->checksum[1] = checksum & 0xFF;
 	UART_send(handle->uartId, (uint8_t*)protocol, sizeof(SOUND_Protocol));
 }
 
 static bool SOUND_waitProtocolFeedback(SOUND_Handle * handle, SOUND_Protocol * protocol, uint32_t timeout){
+	bool success;
 	handle->timeoutCnt = timeout;
 	handle->timeoutFlag = false;
-	SOUND_clearRxBuffer(handle);
 	while(1){
 		if(UART_receive_available(handle->uartId)){
 			handle->rxBuffer[handle->rxBufferLen++] = UART_receive_data(handle->uartId);
 			if(SOUND_parseProtocol(handle->rxBuffer, handle->rxBufferLen, protocol)){
-				return true;
+				success = true;
+				break;
 			}
 		}
 		if(handle->timeoutFlag){
-			return false;
+			success = false;
+			break;
 		}
 	}
-
+	handle->lastCmd = HAL_GetTick();
+	return success;
 }
 
 static bool SOUND_parseProtocol(uint8_t *data, uint32_t data_len, SOUND_Protocol * protocol){
@@ -204,13 +261,44 @@ static bool SOUND_parseProtocol(uint8_t *data, uint32_t data_len, SOUND_Protocol
 	if(SOUND_START_BYTE != data[0] || SOUND_STOP_BYTE != data[9]){
 		return false;
 	}
+	uint16_t checksum = ((uint16_t)data[7] << 8) | data[8];
+	uint16_t expectedChecksum = SOUND_calCheckSumByBuffer(&data[1], 6);
+	if(checksum != expectedChecksum){
+		return false;
+	}
+	protocol->version = data[1];
+	protocol->len = data[2];
+	protocol->command = data[3];
+	protocol->feedback = data[4];
+	protocol->param1 = data[5];
+	protocol->param2 = data[6];
 	return true;
 }
+
+static uint16_t SOUND_calCheckSumByProtocol(SOUND_Protocol *protocol){
+	uint16_t checksum = 0;
+	checksum += protocol->version;
+	checksum += protocol->len;
+	checksum += protocol->command;
+	checksum += protocol->feedback;
+	checksum += protocol->param1;
+	checksum += protocol->param2;
+	return 0xFFFF - checksum + 1;
+}
+
+static uint16_t SOUND_calCheckSumByBuffer(uint8_t * buf, size_t buf_size){
+	uint16_t checksum = 0;
+	for (int var = 0; var < buf_size; ++var) {
+		checksum += buf[var];
+	}
+	return -checksum;
+}
+
 
 static bool SOUND_reset(SOUND_Handle * handle){
 	SOUND_Protocol protocol;
 	protocol.command = SOUND_COMMAND_RESET_MODULE;
-	protocol.feedback = 0x01;
+	protocol.feedback = 0x00;
 	// Send Protocol
 	SOUND_sendProtocol(handle, &protocol);
 	// Wait for Module reset
@@ -225,6 +313,16 @@ static bool SOUND_reset(SOUND_Handle * handle){
 	return true;
 }
 
+static bool SOUND_setNormalWorking(SOUND_Handle * handle){
+	SOUND_Protocol protocol;
+	protocol.command = SOUND_COMMAND_SPECIFY_PLAYBACK_SOURCE;
+	protocol.feedback = 0x00;
+	protocol.param1 = 0x00;
+	protocol.param2 = 0x04;
+	// Send Protocol
+	SOUND_sendProtocol(handle, &protocol);
+	return true;
+}
 static bool SOUND_setDefaultEQ(SOUND_Handle * handle){
 	SOUND_Protocol protocol;
 	protocol.command = SOUND_COMMAND_SPECIFY_EQ;
@@ -234,15 +332,6 @@ static bool SOUND_setDefaultEQ(SOUND_Handle * handle){
 
 	// Send Protocol
 	SOUND_sendProtocol(handle, &protocol);
-	// Wait for Module reset
-	if(!SOUND_waitProtocolFeedback(handle, &protocol, SOUND_COMMAND_TIMEOUT)){
-		return false;
-	}
-	handle->error = false;
-	if(protocol.command == SOUND_QUERY_RETURN_ERROR_RETRANSMIT){
-		handle->error = true;
-		return false;
-	}
 	return true;
 }
 
@@ -254,15 +343,6 @@ static bool SOUND_setDefaultPlaybackMode(SOUND_Handle * handle){
 	protocol.param2 = 0x02;
 	// Send Protocol
 	SOUND_sendProtocol(handle, &protocol);
-	// Wait for Module reset
-	if(!SOUND_waitProtocolFeedback(handle, &protocol, SOUND_COMMAND_TIMEOUT)){
-		return false;
-	}
-	handle->error = false;
-	if(protocol.command == SOUND_QUERY_RETURN_ERROR_RETRANSMIT){
-		handle->error = true;
-		return false;
-	}
 	return true;
 }
 
@@ -271,18 +351,9 @@ static bool SOUND_setDefaultVolume(SOUND_Handle * handle){
 	protocol.command = SOUND_COMMAND_SPECIFY_VOLUME;
 	protocol.feedback = 0x00;
 	protocol.param1 = 0x00;
-	protocol.param2 = 0x0F;
+	protocol.param2 = 0x1F;
 	// Send Protocol
 	SOUND_sendProtocol(handle, &protocol);
-	// Wait for Module reset
-	if(!SOUND_waitProtocolFeedback(handle, &protocol, SOUND_COMMAND_TIMEOUT)){
-		return false;
-	}
-	handle->error = false;
-	if(protocol.command == SOUND_QUERY_RETURN_ERROR_RETRANSMIT){
-		handle->error = true;
-		return false;
-	}
 	return true;
 }
 
@@ -291,22 +362,17 @@ static bool SOUND_setDefaultPlaybackSource(SOUND_Handle * handle){
 	protocol.command = SOUND_COMMAND_SPECIFY_PLAYBACK_SOURCE;
 	protocol.feedback = 0x00;
 	protocol.param1 = 0x00;
-	protocol.param2 = 0x02;
+	protocol.param2 = 0x01;
 	// Send Protocol
 	SOUND_sendProtocol(handle, &protocol);
-	// Wait for Module reset
-	if(!SOUND_waitProtocolFeedback(handle, &protocol, SOUND_COMMAND_TIMEOUT)){
-		return false;
-	}
-	handle->error = false;
-	if(protocol.command == SOUND_QUERY_RETURN_ERROR_RETRANSMIT){
-		handle->error = true;
-		return false;
-	}
 	return true;
 }
 
 static bool SOUND_playSpecifyFile(SOUND_Handle * handle, uint8_t file){
+	// Audio Player is busy
+	if(handle->busy){
+		return false;
+	}
 	SOUND_Protocol protocol;
 	protocol.command = SOUND_COMMAND_SPECIFY_FOL_PLAYBACK;
 	protocol.feedback = 0x00;
@@ -314,14 +380,8 @@ static bool SOUND_playSpecifyFile(SOUND_Handle * handle, uint8_t file){
 	protocol.param2 = file;
 	// Send Protocol
 	SOUND_sendProtocol(handle, &protocol);
-	// Wait for Module reset
-	if(!SOUND_waitProtocolFeedback(handle, &protocol, SOUND_COMMAND_TIMEOUT)){
-		return false;
-	}
-	handle->error = false;
-	if(protocol.command == SOUND_QUERY_RETURN_ERROR_RETRANSMIT){
-		handle->error = true;
-		return false;
-	}
+	// Audio Player is busy
+	handle->busy = true;
+	handle->lastPlayTime = HAL_GetTick();
 	return true;
 }

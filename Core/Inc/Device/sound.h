@@ -25,7 +25,9 @@ typedef enum {
 }SOUND_Id;
 
 bool SOUND_init(void);
+bool SOUND_run(void);
 bool SOUND_play(SOUND_Id id, SOUND_File file);
 bool SOUND_isError(SOUND_Id id);
+void SOUND_test(void);
 
 #endif /* INC_DEVICE_SOUND_H_ */

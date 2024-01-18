@@ -11,7 +11,6 @@
 #include <Hal/gpio.h>
 #include <Hal/timer.h>
 
-#define WATERFLOW_MEASURE_MS		1000
 
 typedef struct {
 	uint32_t counter;
@@ -21,9 +20,9 @@ typedef struct {
 }WATERFLOW_Handle;
 
 static GPIO_info_t WATERFLOW_ioTable[] = {
-	[WATERFLOW_ID_1] = {GPIOE, { GPIO_PIN_3, GPIO_MODE_IT_RISING, GPIO_NOPULL, GPIO_SPEED_FREQ_HIGH}},
-	[WATERFLOW_ID_2] = {GPIOE, { GPIO_PIN_4, GPIO_MODE_IT_RISING, GPIO_NOPULL, GPIO_SPEED_FREQ_HIGH}},
-	[WATERFLOW_ID_3] = {GPIOE, { GPIO_PIN_5, GPIO_MODE_IT_RISING, GPIO_NOPULL, GPIO_SPEED_FREQ_HIGH}},
+	[WATERFLOW_ID_1] = {GPIOE, { GPIO_PIN_3, GPIO_MODE_IT_FALLING, GPIO_PULLUP, GPIO_SPEED_FREQ_HIGH}},
+	[WATERFLOW_ID_2] = {GPIOE, { GPIO_PIN_4, GPIO_MODE_IT_FALLING, GPIO_PULLUP, GPIO_SPEED_FREQ_HIGH}},
+	[WATERFLOW_ID_3] = {GPIOE, { GPIO_PIN_5, GPIO_MODE_IT_FALLING, GPIO_PULLUP, GPIO_SPEED_FREQ_HIGH}},
 };
 
 static WATERFLOW_Handle WATERFLOW_handleTable[] = {
@@ -50,12 +49,18 @@ static WATERFLOW_Handle WATERFLOW_handleTable[] = {
 static void WATERFLOW_interrupt1ms(void);
 
 void WATERFLOW_init(void){
+	TIMER_attach_intr_1ms(WATERFLOW_interrupt1ms);
 	for (int id = 0; id < WATERFLOW_ID_MAX; ++id) {
 		HAL_GPIO_Init(WATERFLOW_ioTable[id].port, &WATERFLOW_ioTable[id].init_info);
 	}
+	HAL_NVIC_SetPriority(EXTI3_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(EXTI3_IRQn);
+
+	HAL_NVIC_SetPriority(EXTI4_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(EXTI4_IRQn);
+
 	HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
 	HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
-	TIMER_attach_intr_1ms(WATERFLOW_interrupt1ms);
 }
 /**
  * Get water flow (unit (L/m))
@@ -81,11 +86,17 @@ void HAL_GPIO_EXTI_Callback(uint16_t pin){
 }
 
 
+void WATERFLOW_test(void){
+	if(HAL_GPIO_ReadPin(WATERFLOW_ioTable[WATERFLOW_ID_2].port, WATERFLOW_ioTable[WATERFLOW_ID_2].init_info.Pin) == GPIO_PIN_RESET){
+		uint8_t a = 1;
+	}
+}
+
 static void WATERFLOW_interrupt1ms(void){
-	for (int id = 0; id < WATERFLOW_ID_MAX; ++id) {
+	for (int id = 0; id <= WATERFLOW_ID_MAX; ++id) {
 		WATERFLOW_handleTable[id].counter++;
-		if(WATERFLOW_handleTable[id].counter > WATERFLOW_MEASURE_MS){
-			WATERFLOW_handleTable[id].value = (uint32_t)((float)WATERFLOW_handleTable[id].pulse * 7.5);
+		if(WATERFLOW_handleTable[id].counter > 1000){
+			WATERFLOW_handleTable[id].value = (uint32_t)((float)WATERFLOW_handleTable[id].pulse / 7.5);
 			WATERFLOW_handleTable[id].counter = 0;
 			WATERFLOW_handleTable[id].pulse = 0;
 		}

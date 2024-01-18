@@ -22,7 +22,7 @@ typedef struct {
 
 UART_HandleTypeDef huart1 = {
 	.Instance = USART1,
-	.Init.BaudRate = 115200,
+	.Init.BaudRate = 9600,
 	.Init.WordLength = UART_WORDLENGTH_8B,
 	.Init.StopBits = UART_STOPBITS_1,
 	.Init.Parity = UART_PARITY_NONE,
@@ -44,7 +44,7 @@ UART_HandleTypeDef huart2 = {
 
 UART_HandleTypeDef huart3 = {
 	.Instance = USART3,
-	.Init.BaudRate = 115200,
+	.Init.BaudRate = 9600,
 	.Init.WordLength = UART_WORDLENGTH_8B,
 	.Init.StopBits = UART_STOPBITS_1,
 	.Init.Parity = UART_PARITY_NONE,
@@ -55,7 +55,7 @@ UART_HandleTypeDef huart3 = {
 
 UART_HandleTypeDef huart4 = {
 	.Instance = UART4,
-	.Init.BaudRate = 115200,
+	.Init.BaudRate = 9600,
 	.Init.WordLength = UART_WORDLENGTH_8B,
 	.Init.StopBits = UART_STOPBITS_1,
 	.Init.Parity = UART_PARITY_NONE,

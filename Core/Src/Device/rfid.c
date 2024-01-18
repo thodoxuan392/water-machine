@@ -13,6 +13,16 @@
 
 #include <Hal/spi.h>
 
+
+#define RFID_V1
+//#define RFID_V2
+
+#if defined(RFID_V1)
+#define RFID_PN532_DATA_BLOCK	4
+#elif defined(RFID_V2)
+#define RFID_PN532_DATA_BLOCK	1
+#endif
+
 typedef struct {
 	PN532_Handle pn532_handle;
 	RFID_Error_t error;
@@ -21,7 +31,6 @@ typedef struct {
 	RFID_t rfid;
 }RFID_Handle;
 
-#define RFID_PN532_DATA_BLOCK	4
 static void SPI_CS1_write(const uint8_t *data, const uint32_t data_len);
 static void SPI_CS1_writeThenRead(uint8_t* tx_buf, uint32_t tx_len, uint8_t *rx_buf, uint32_t rx_len);
 static void SPI_CS2_write(const uint8_t *data, const uint32_t data_len);
@@ -34,9 +43,18 @@ static void RFID_buildToBlockData(RFID_t *rfid, uint8_t *data, uint32_t data_len
 static bool RFID_parseFromBlockData(uint8_t *data, uint32_t data_len, RFID_t *rfid);
 static uint8_t RFID_getIdKey(uint8_t *id, uint32_t id_len);
 static uint16_t RFID_getBlockDataKey(uint8_t *data, uint32_t data_size);
+#if defined(RFID_V2)
+static uint32_t RFID_volumeToMoney(uint16_t volume);
+static uint16_t RFID_moneyToVolume(uint32_t money);
+#endif
 
 
+#if defined(RFID_V1)
 static const uint8_t RFID_key[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+#elif defined(RFID_V2)
+static const uint8_t RFID_key[] = { 0xFF, 0xFF, 0x07, 0x09, 0x06, 0x08 };
+#endif
+
 static RFID_Handle RFID_handleTable[] = {
 	[RFID_ID_1] = {
 			.pn532_handle = {
@@ -95,17 +113,17 @@ void RFID_clearDetected(RFID_Id_t id){
 }
 
 RFID_Error_t RFID_set(RFID_Id_t id, RFID_t * rfid){
-//	// Check RFID is available
-//	if(!RFID_handleTable[id].isPlaced){
-//		return RFID_ERROR_NOT_AVAILABLE;
-//	}
-//	// Check RFID uid is matched
-//	if(rfid->id_len != RFID_handleTable[id].rfid.id_len){
-//		return RFID_ERROR_INVALID_FORMAT;
-//	}
-//	if(memcmp(rfid->id, RFID_handleTable[id].rfid.id, rfid->id_len) != 0){
-//		return RFID_ERROR_ID_NOT_MATCHED;
-//	}
+	// Check RFID is available
+	if(!RFID_handleTable[id].isPlaced){
+		return RFID_ERROR_NOT_AVAILABLE;
+	}
+	// Check RFID uid is matched
+	if(rfid->id_len != RFID_handleTable[id].rfid.id_len){
+		return RFID_ERROR_INVALID_FORMAT;
+	}
+	if(memcmp(rfid->id, RFID_handleTable[id].rfid.id, rfid->id_len) != 0){
+		return RFID_ERROR_ID_NOT_MATCHED;
+	}
 	uint8_t writeData[16] = {0};
 	RFID_buildToBlockData(rfid, writeData, sizeof(writeData));
 	if(!PN532_readPassiveTargetID(&RFID_handleTable[id], PN532_MIFARE_ISO14443A, rfid->id, &rfid->id_len, 50)){
@@ -146,7 +164,7 @@ static void RFID_runById(RFID_Id_t id){
 	uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
 	uint8_t uidLength;                        // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
 	uint8_t readBlockData[16] = {0};
-	if(!PN532_readPassiveTargetID(&RFID_handleTable[id], PN532_MIFARE_ISO14443A, uid, &uidLength, 50)){
+	if(!PN532_readPassiveTargetID(&RFID_handleTable[id], PN532_MIFARE_ISO14443A, uid, &uidLength, 70)){
 		RFID_handleTable[id].isPlaced = false;
 		return;
 	}
@@ -197,11 +215,14 @@ static void SPI_CS3_writeThenRead(uint8_t* tx_buf, uint32_t tx_len, uint8_t *rx_
 }
 
 static void RFID_buildToBlockData(RFID_t *rfid, uint8_t *data, uint32_t data_len){
+#if defined(RFID_V1)
 	if(data_len != 16){
 		return;
 	}
 	uint8_t data_len_out = 0;
-	data[data_len_out++] = (rfid->money >> 8 & 0xFF);
+	data[data_len_out++] = (rfid->money >> 24) & 0xFF;
+	data[data_len_out++] = (rfid->money >> 16) & 0xFF;
+	data[data_len_out++] = (rfid->money >> 8) & 0xFF;
 	data[data_len_out++] = rfid->money & 0xFF;
 	data[data_len_out++] = rfid->issueDate[0];
 	data[data_len_out++] = rfid->issueDate[1];
@@ -216,19 +237,35 @@ static void RFID_buildToBlockData(RFID_t *rfid, uint8_t *data, uint32_t data_len
 
 	uint8_t idKey = RFID_getIdKey(rfid->id, rfid->id_len);
 	data[data_len_out++] = idKey;
+#elif defined(RFID_V2)
+	uint8_t data_len_out = 0;
+	uint16_t volume = RFID_moneyToVolume(rfid->money);
+	data[data_len_out++] = (volume >> 8) & 0xFF;
+	data[data_len_out++] = volume & 0xFF;
+	data[data_len_out++] = rfid->expireDate[0];
+	data[data_len_out++] = rfid->expireDate[1];
+
+	uint16_t expireYear = rfid->expireDate[2] + 2000;
+	data[data_len_out++] = (expireYear >> 8) & 0xFF;
+	data[data_len_out++] = expireYear & 0xFF;
+#endif
 }
 
 static bool RFID_parseFromBlockData(uint8_t *data, uint32_t data_len, RFID_t *rfid){
+#if defined(RFID_V1)
 	if(data_len != 16){
 		return false;
 	}
-	rfid->money = (uint16_t)data[0] << 8  | data[1];
-	rfid->issueDate[0] = data[2];
-	rfid->issueDate[1] = data[3];
-	rfid->issueDate[2] = data[4];
-	rfid->expireDate[0] = data[5];
-	rfid->expireDate[1] = data[6];
-	rfid->expireDate[2] = data[7];
+	rfid->money = (uint16_t)data[0] << 24  |
+					(uint16_t)data[1] << 16 |
+					(uint16_t)data[2] << 8  |
+					data[3];
+	rfid->issueDate[0] = data[4];
+	rfid->issueDate[1] = data[5];
+	rfid->issueDate[2] = data[6];
+	rfid->expireDate[0] = data[7];
+	rfid->expireDate[1] = data[8];
+	rfid->expireDate[2] = data[9];
 
 
 	uint16_t dataKey = RFID_getBlockDataKey(data, 8);
@@ -244,7 +281,31 @@ static bool RFID_parseFromBlockData(uint8_t *data, uint32_t data_len, RFID_t *rf
 		return false;
 	}
 	return true;
+#elif defined(RFID_V2)
+	if(data_len != 16){
+		return false;
+	}
+	uint16_t volume = (uint16_t)data[0] << 8  |
+						data[1];
+	rfid->money = RFID_volumeToMoney(volume);
+	rfid->issueDate[0] = 23;
+	rfid->issueDate[1] = 1;
+	rfid->issueDate[2] = 1;
+	rfid->expireDate[0] = data[2];
+	rfid->expireDate[1] = data[3];
+	rfid->expireDate[2] = ((uint16_t)data[4] << 8  | data[5]) - 2000;
+	return true;
+#endif
 }
+
+#if defined(RFID_V2)
+static uint32_t RFID_volumeToMoney(uint16_t volume){
+	return volume * 1000;
+}
+static uint16_t RFID_moneyToVolume(uint32_t money){
+	return money / 1000;
+}
+#endif
 
 static uint16_t RFID_getBlockDataKey(uint8_t *data, uint32_t data_size){
 	uint8_t xor = 0xFF;
@@ -256,6 +317,7 @@ static uint16_t RFID_getBlockDataKey(uint8_t *data, uint32_t data_size){
 	uint16_t ret = ((uint16_t)xor << 8) | sum;
 	return ret;
 }
+
 
 static uint8_t RFID_getIdKey(uint8_t *id, uint32_t id_len){
 	uint8_t id_key = 0xFF;

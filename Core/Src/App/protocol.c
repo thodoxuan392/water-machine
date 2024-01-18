@@ -14,7 +14,7 @@
 #include <Hal/uart.h>
 #include <Hal/timer.h>
 
-#define PROTOCOL_UART 	UART_3
+#define PROTOCOL_UART 	UART_2
 #define PROTOCOL_BUFFER_MAX		128
 
 static void PROTOCOL_timerInterrupt1ms(void);
