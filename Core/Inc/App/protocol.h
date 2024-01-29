@@ -17,7 +17,7 @@
 #define DATA_MAX_LENGTH 	255
 #define TX_BUFFER_MAX_LENGTH	512
 #define RX_BUFFER_MAX_LENGTH	1024
-#define RX_TIMEOUT_MS				1000			// 1000ms
+#define RX_TIMEOUT_MS				500			// 1000ms
 
 typedef struct {
 	uint8_t protocol_id;

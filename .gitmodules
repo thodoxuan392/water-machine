@@ -3,4 +3,4 @@
 	url = git@github.com:thodoxuan392/utils.git
 [submodule "Core/Lib/PN532"]
 	path = Core/Lib/PN532
-	url = git@github.com:thodoxuan392/PN532.git
+	url = git@github.com:thodoxuan392/Adafruit-PN532.git

@@ -15,6 +15,7 @@
 
 typedef struct {
 	UART_HandleTypeDef * huart_p;
+	void (*callback)(void);
 	utils_buffer_t * buffer;
 	uint16_t temp_data;
 }UART_info_t;
@@ -118,6 +119,10 @@ uint16_t UART_receive_data(UART_id_t id){
 	return data;
 }
 
+void UART_set_receive_callback(UART_id_t id, void (*callback)(void)){
+	uart_table[id].callback = callback;
+}
+
 void UART_clear_buffer(UART_id_t id){
 	utils_buffer_drop_all(uart_table[id].buffer);
 }
@@ -134,14 +139,18 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef * huart){
 	if(huart->Instance == uart_table[UART_1].huart_p->Instance){
 		utils_buffer_push(uart_table[UART_1].buffer, &uart_table[UART_1].temp_data);
 		HAL_UART_Receive_IT(uart_table[UART_1].huart_p, &uart_table[UART_1].temp_data, 1);
+		if(uart_table[UART_1].callback) uart_table[UART_1].callback();
 	}else if(huart->Instance == uart_table[UART_2].huart_p->Instance){
 		utils_buffer_push(uart_table[UART_2].buffer, &uart_table[UART_2].temp_data);
 		HAL_UART_Receive_IT(uart_table[UART_2].huart_p, &uart_table[UART_2].temp_data, 1);
+		if(uart_table[UART_2].callback) uart_table[UART_2].callback();
 	}else if(huart->Instance == uart_table[UART_3].huart_p->Instance){
 		utils_buffer_push(uart_table[UART_3].buffer, &uart_table[UART_3].temp_data);
 		HAL_UART_Receive_IT(uart_table[UART_3].huart_p, &uart_table[UART_3].temp_data, 1);
+		if(uart_table[UART_3].callback) uart_table[UART_3].callback();
 	}else if(huart->Instance == uart_table[UART_4].huart_p->Instance){
 		utils_buffer_push(uart_table[UART_4].buffer, &uart_table[UART_4].temp_data);
 		HAL_UART_Receive_IT(uart_table[UART_4].huart_p, &uart_table[UART_4].temp_data, 1);
+		if(uart_table[UART_4].callback) uart_table[UART_4].callback();
 	}
 }

@@ -150,7 +150,7 @@ void RFID_test(void){
 	RFID_t rfid = {
 		.id = {163, 52, 18, 8},
 		.id_len = 4,
-		.money = 200,
+		.money = 200000,
 		.issueDate = { 24, 1, 7},
 		.expireDate = { 25, 1, 7},
 	};
@@ -256,9 +256,9 @@ static bool RFID_parseFromBlockData(uint8_t *data, uint32_t data_len, RFID_t *rf
 	if(data_len != 16){
 		return false;
 	}
-	rfid->money = (uint16_t)data[0] << 24  |
-					(uint16_t)data[1] << 16 |
-					(uint16_t)data[2] << 8  |
+	rfid->money = (uint32_t)data[0] << 24  |
+					(uint32_t)data[1] << 16  |
+					(uint32_t)data[2] << 8  |
 					data[3];
 	rfid->issueDate[0] = data[4];
 	rfid->issueDate[1] = data[5];
@@ -268,13 +268,13 @@ static bool RFID_parseFromBlockData(uint8_t *data, uint32_t data_len, RFID_t *rf
 	rfid->expireDate[2] = data[9];
 
 
-	uint16_t dataKey = RFID_getBlockDataKey(data, 8);
-	uint16_t expectedDataKey = ((uint16_t)data[8] << 8) | data[9];
+	uint16_t dataKey = RFID_getBlockDataKey(data, 10);
+	uint16_t expectedDataKey = ((uint16_t)data[10] << 8) | data[11];
 	if(dataKey != expectedDataKey){
 		return false;
 	}
 
-	uint8_t idKey = data[10];
+	uint8_t idKey = data[12];
 	uint8_t expectedIdKey = RFID_getIdKey(rfid->id, rfid->id_len);
 
 	if(idKey != expectedIdKey){
