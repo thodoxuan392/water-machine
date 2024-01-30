@@ -89,16 +89,16 @@ int main(void)
   SOUND_init();
   WATERFLOW_init();
   SOLENOID_init();
-  // Device Manager Init
+//  // Device Manager Init
   VANMANAGER_init();
-
-  // App Init
+//
+//  // App Init
+  STATEMACHINE_init();
   PROTOCOL_init();
   SCHEDULERPORT_init();
   COMMANDHANDLER_init();
   SCHEDULERPORT_init();
   STATUSREPORTER_init();
-  STATEMACHINE_init();
   /* USER CODE END Init */
   /* USER CODE BEGIN 2 */
   /* USER CODE END 2 */

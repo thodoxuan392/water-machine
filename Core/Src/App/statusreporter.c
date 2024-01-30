@@ -70,16 +70,14 @@ static void STATUSREPORTER_buildRifdDetected(PROTOCOL_t * proto, MACHINE_Id_t ma
 	for (int var = 0; var < machine->rfid.id_len; ++var) {
 		proto->data[proto->data_len++] = machine->rfid.id[var];
 	}
-	proto->data[proto->data_len++] = (machine->rfid.money >> 24) & 0xFF;
-	proto->data[proto->data_len++] = (machine->rfid.money >> 16) & 0xFF;
-	proto->data[proto->data_len++] = (machine->rfid.money >> 8) & 0xFF;
-	proto->data[proto->data_len++] = machine->rfid.money & 0xFF;
+	proto->data[proto->data_len++] = machine->rfid.isValid;
+	proto->data[proto->data_len++] = (machine->rfid.volume >> 24) & 0xFF;
+	proto->data[proto->data_len++] = (machine->rfid.volume >> 16) & 0xFF;
+	proto->data[proto->data_len++] = (machine->rfid.volume >> 8) & 0xFF;
+	proto->data[proto->data_len++] = machine->rfid.volume & 0xFF;
 	proto->data[proto->data_len++] = machine->rfid.issueDate[0];
 	proto->data[proto->data_len++] = machine->rfid.issueDate[1];
 	proto->data[proto->data_len++] = machine->rfid.issueDate[2];
-	proto->data[proto->data_len++] = machine->rfid.expireDate[0];
-	proto->data[proto->data_len++] = machine->rfid.expireDate[1];
-	proto->data[proto->data_len++] = machine->rfid.expireDate[2];
 }
 
 

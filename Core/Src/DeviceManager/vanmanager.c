@@ -27,6 +27,7 @@ typedef struct {
 	WATERFLOW_Id_t waterflow_id;
 	bool openVanRequested;
 	bool cancelOpenVanRequested;
+	bool isOpening;
 	uint16_t volumeRequested;
 	uint16_t volumeFlushed;
 	VANMANAGER_State state;
@@ -38,7 +39,7 @@ typedef struct {
 
 }VANMANAGER_Handle;
 
-static VANMANAGER_Handle VANMANAGER_handleTable[] = {
+static VANMANAGER_Handle VANMANAGER_handleTable[SOLENOID_ID_MAX] = {
 	[SOLENOID_ID_1] = {
 		.solenoid_id = SOLENOID_ID_1,
 		.waterflow_id = WATERFLOW_ID_1,
@@ -55,7 +56,7 @@ static VANMANAGER_Handle VANMANAGER_handleTable[] = {
 		.state = VANMANAGER_IDLE,
 	}
 };
-static VANMANAGER_onOpenVanCompletedCallback VANMANAGER_onCompletedCallback = NULL;
+static void (*VANMANAGER_onCompletedCallback)(uint8_t solenoidId, uint8_t success) = NULL;
 
 static void VANMANAGER_interrupt1ms(void);
 
@@ -72,12 +73,12 @@ void VANMANAGER_init(void){
 }
 
 void VANMANAGER_run(void){
-	for (int id = 0; id < SOLENOID_ID_MAX; ++id) {
+	for (int id = 0; id < SOLENOID_ID_MAX; id++) {
 		VANMANAGER_runByHandle(&VANMANAGER_handleTable[id]);
 	}
 }
 
-void VANMANAGER_setOnOpenVanCompletedCallback(VANMANAGER_onOpenVanCompletedCallback callback){
+void VANMANAGER_setOnOpenVanCompletedCallback( void (*callback)(uint8_t solenoidId, uint8_t success)){
 	VANMANAGER_onCompletedCallback = callback;
 }
 
@@ -127,6 +128,7 @@ static void VANMANAGER_runOpenVan(VANMANAGER_Handle* handle){
 	handle->volumeFlushed = 0;
 	handle->openVanTimeCnt = VANMANAGER_OPEN_VAN_TIMEOUT_MS;
 	handle->openVanTimeoutFlag = false;
+	handle->isOpening = true;
 	handle->state = VANMANAGER_WAIT_FOR_OPEN_VAN_DONE;
 }
 
@@ -134,6 +136,7 @@ static void VANMANAGER_runWaitForOpenVanDone(VANMANAGER_Handle* handle){
 	if(handle->volumeFlushed >= handle->volumeRequested){
 		SOLENOID_set(handle->solenoid_id, false);
 		handle->state = VANMANAGER_IDLE;
+		handle->isOpening = false;
 		if(VANMANAGER_onCompletedCallback){
 			// Complete success callback
 			VANMANAGER_onCompletedCallback(handle->solenoid_id,  true);
@@ -142,6 +145,7 @@ static void VANMANAGER_runWaitForOpenVanDone(VANMANAGER_Handle* handle){
 	if(handle->openVanTimeoutFlag){
 		SOLENOID_set(handle->solenoid_id, false);
 		handle->state = VANMANAGER_IDLE;
+		handle->isOpening = false;
 		if(VANMANAGER_onCompletedCallback){
 			// Complete failed callback
 			VANMANAGER_onCompletedCallback(handle->solenoid_id, false);
@@ -150,6 +154,7 @@ static void VANMANAGER_runWaitForOpenVanDone(VANMANAGER_Handle* handle){
 	if(handle->cancelOpenVanRequested){
 		SOLENOID_set(handle->solenoid_id, false);
 		handle->cancelOpenVanRequested = false;
+		handle->isOpening = false;
 		handle->state = VANMANAGER_IDLE;
 		if(VANMANAGER_onCompletedCallback){
 			// Complete failed callback
@@ -166,7 +171,7 @@ static uint32_t VANMANAGER_calVolumeFlushedInTime(SOLENOID_Id id,  uint32_t time
 static void VANMANAGER_interrupt1ms(void){
 	for (int id = 0; id < SOLENOID_ID_MAX; ++id) {
 		// Flash timer counter
-		if(VANMANAGER_handleTable[id].openVanRequested){
+		if(VANMANAGER_handleTable[id].isOpening){
 			if(VANMANAGER_handleTable[id].flushTimerCnt > 0){
 				VANMANAGER_handleTable[id].flushTimerCnt--;
 				if(VANMANAGER_handleTable[id].flushTimerCnt == 0){

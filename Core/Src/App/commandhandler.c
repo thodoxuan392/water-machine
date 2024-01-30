@@ -159,16 +159,14 @@ static void COMMANDHANDLER_handleCommandUpdateRfid(PROTOCOL_t *proto){
 	uint8_t machineId = proto->data[0];
 	rfid.id_len = proto->data[1];
 	memcpy(rfid.id, &proto->data[2], rfid.id_len);
-	rfid.money = ((uint32_t)proto->data[2 + rfid.id_len] << 24) |
-					((uint32_t)proto->data[3 + rfid.id_len] << 16) |
-					((uint32_t)proto->data[4 + rfid.id_len] << 8) |
-					proto->data[5 + rfid.id_len];
-	rfid.issueDate[0] = proto->data[6 + rfid.id_len];
-	rfid.issueDate[1] = proto->data[7 + rfid.id_len];
-	rfid.issueDate[2] = proto->data[8 + rfid.id_len];
-	rfid.expireDate[0] = proto->data[9 + rfid.id_len];
-	rfid.expireDate[1] = proto->data[10 + rfid.id_len];
-	rfid.expireDate[2] = proto->data[11 + rfid.id_len];
+	rfid.isValid = proto->data[2 + rfid.id_len];
+	rfid.volume = ((uint32_t)proto->data[3 + rfid.id_len] << 24) |
+					((uint32_t)proto->data[4 + rfid.id_len] << 16) |
+					((uint32_t)proto->data[5 + rfid.id_len] << 8) |
+					proto->data[6 + rfid.id_len];
+	rfid.issueDate[0] = proto->data[7 + rfid.id_len];
+	rfid.issueDate[1] = proto->data[8 + rfid.id_len];
+	rfid.issueDate[2] = proto->data[9 + rfid.id_len];
 	// Send ACK
 	 COMMANDHANDLER_sendCommandUpdateRfidACK(machineId);
 	// Handle

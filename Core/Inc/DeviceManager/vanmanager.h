@@ -13,11 +13,9 @@
 
 #include <Device/solenoid.h>
 
-typedef void (*VANMANAGER_onOpenVanCompletedCallback)(uint8_t solenoidId, bool success);
-
 void VANMANAGER_init(void);
 void VANMANAGER_run(void);
-void VANMANAGER_setOnOpenVanCompletedCallback(VANMANAGER_onOpenVanCompletedCallback callback);
+void VANMANAGER_setOnOpenVanCompletedCallback(void (*callback)(uint8_t solenoidId, uint8_t success));
 bool VANMANAGER_openVan(SOLENOID_Id id, uint16_t volume);
 bool VANMANAGER_cancelOpenVan(SOLENOID_Id id);
 

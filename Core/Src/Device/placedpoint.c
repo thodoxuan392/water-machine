@@ -23,7 +23,7 @@ bool PLACEDPOINT_init(void){
 }
 
 bool PLACEDPOINT_isPlaced(PLACEDPOINT_Id_t id){
-	return (HAL_GPIO_ReadPin(PLACEDPOINT_ioTable[id].port, PLACEDPOINT_ioTable[id].init_info.Pin) == GPIO_PIN_SET);
+	return (HAL_GPIO_ReadPin(PLACEDPOINT_ioTable[id].port, PLACEDPOINT_ioTable[id].init_info.Pin) != GPIO_PIN_SET);
 }
 
 

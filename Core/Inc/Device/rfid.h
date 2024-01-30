@@ -32,9 +32,9 @@ typedef enum {
 typedef struct {
 	uint8_t id[RFID_ID_MAX_LENGTH];
 	uint8_t id_len;
-	uint32_t money;
+	bool isValid;
+	uint32_t volume;
 	uint8_t issueDate[3];	// [0]: Year, [1] Month, [2] Date
-	uint8_t expireDate[3];
 }RFID_t;
 
 typedef void (*RFID_errorCallback)(RFID_Id_t id, RFID_Error_t error);

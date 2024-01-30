@@ -93,7 +93,7 @@ void WATERFLOW_test(void){
 }
 
 static void WATERFLOW_interrupt1ms(void){
-	for (int id = 0; id <= WATERFLOW_ID_MAX; ++id) {
+	for (int id = 0; id < WATERFLOW_ID_MAX; ++id) {
 		WATERFLOW_handleTable[id].counter++;
 		if(WATERFLOW_handleTable[id].counter > 1000){
 			WATERFLOW_handleTable[id].value = (uint32_t)((float)WATERFLOW_handleTable[id].pulse / 7.5);

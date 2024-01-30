@@ -25,7 +25,7 @@
 
 // Machine
 static void MACHINE_update(MACHINE_Id_t id);
-static void STATEMACHINE_onOpenVanCompletedCallback(uint8_t solenoidId,  bool success);
+static void STATEMACHINE_onOpenVanCompletedCallback(uint8_t solenoidId,  uint8_t success);
 
 static MACHINE_t machine[] = {
 		[MACHINE_ID_1] = {
@@ -106,14 +106,14 @@ static void MACHINE_update(MACHINE_Id_t id){
 	machine[id].placed_point_status = PLACEDPOINT_isPlaced(machine[id].placed_point_id);
 	machine[id].solenoid_status = SOLENOIS_isEnable(machine[id].solenoid_id);
 	machine[id].water_flow_status = WATERFLOW_getIn2CcPerSecond(machine[id].water_flow_status);
-	machine[id].rfid_placed_status = RFID_isPlaced(machine[id].rfid_placed_status);
+	machine[id].rfid_placed_status = RFID_isPlaced(machine[id].rfid_id);
 	machine[id].error = (uint8_t)PLACEDPOINT_isError(machine[id].placed_point_id) |
 						((uint8_t)WATERFLOW_isError(machine[id].water_flow_id) << 1) |
 						((uint8_t)RFID_isError(machine[id].rfid_id) << 2) |
 						((uint8_t)SOUND_isError(machine[id].placed_point_id) << 3);
 }
 
-static void STATEMACHINE_onOpenVanCompletedCallback(uint8_t solenoidId,  bool success){
+static void STATEMACHINE_onOpenVanCompletedCallback(uint8_t solenoidId, uint8_t success){
 	uint8_t result = success? RESULT_SUCCESS : RESULT_FAILED;
 	uint8_t machineId;
 	for (int id = 0; id < MACHINE_ID_MAX; ++id) {
