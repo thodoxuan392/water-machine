@@ -47,6 +47,7 @@ static WATERFLOW_Handle WATERFLOW_handleTable[] = {
 };
 
 static void WATERFLOW_interrupt1ms(void);
+static float WATERFLOW_getCalibrateByPulse(uint32_t pulse);
 
 void WATERFLOW_init(void){
 	TIMER_attach_intr_1ms(WATERFLOW_interrupt1ms);
@@ -96,11 +97,33 @@ static void WATERFLOW_interrupt1ms(void){
 	for (int id = 0; id < WATERFLOW_ID_MAX; ++id) {
 		WATERFLOW_handleTable[id].counter++;
 		if(WATERFLOW_handleTable[id].counter > 1000){
-			WATERFLOW_handleTable[id].value = (uint32_t)((float)WATERFLOW_handleTable[id].pulse / 7.5);
+			float calib = WATERFLOW_getCalibrateByPulse(WATERFLOW_handleTable[id].pulse);
+			WATERFLOW_handleTable[id].value = (uint32_t)((float)WATERFLOW_handleTable[id].pulse * calib / 7.5);
 			WATERFLOW_handleTable[id].counter = 0;
-			WATERFLOW_handleTable[id].pulse = 0;
+//			WATERFLOW_handleTable[id].pulse = 0;
 		}
 	}
 
+}
+
+static float WATERFLOW_getCalibrateByPulse(uint32_t pulse){
+	if(pulse < 16){
+		return 1.43f;
+	}
+	else if(pulse < 32.5){
+		return 1.38f;
+	}
+	else if(pulse < 49.3){
+		return 1.33f;
+	}
+	else if(pulse < 65.6){
+		return 1.28f;
+	}
+	else if(pulse < 82){
+		return 1.24f;
+	}
+	else {
+		return 1.20f;
+	}
 }
 

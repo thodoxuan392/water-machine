@@ -11,6 +11,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define WATERFLOW_CALIBRATE	1.33f
+
 typedef enum {
 	WATERFLOW_ID_1 = 0,
 	WATERFLOW_ID_2,
