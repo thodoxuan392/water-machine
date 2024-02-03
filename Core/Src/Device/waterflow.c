@@ -50,7 +50,6 @@ static void WATERFLOW_interrupt1ms(void);
 static float WATERFLOW_getCalibrateByPulse(uint32_t pulse);
 
 void WATERFLOW_init(void){
-	TIMER_attach_intr_1ms(WATERFLOW_interrupt1ms);
 	for (int id = 0; id < WATERFLOW_ID_MAX; ++id) {
 		HAL_GPIO_Init(WATERFLOW_ioTable[id].port, &WATERFLOW_ioTable[id].init_info);
 	}
@@ -62,6 +61,8 @@ void WATERFLOW_init(void){
 
 	HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
 	HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+
+	TIMER_attach_intr_1ms(WATERFLOW_interrupt1ms);
 }
 /**
  * Get water flow (unit (L/m))
@@ -100,7 +101,7 @@ static void WATERFLOW_interrupt1ms(void){
 			float calib = WATERFLOW_getCalibrateByPulse(WATERFLOW_handleTable[id].pulse);
 			WATERFLOW_handleTable[id].value = (uint32_t)((float)WATERFLOW_handleTable[id].pulse * calib / 7.5);
 			WATERFLOW_handleTable[id].counter = 0;
-//			WATERFLOW_handleTable[id].pulse = 0;
+			WATERFLOW_handleTable[id].pulse = 0;
 		}
 	}
 
@@ -120,10 +121,10 @@ static float WATERFLOW_getCalibrateByPulse(uint32_t pulse){
 		return 1.28f;
 	}
 	else if(pulse < 82){
-		return 1.24f;
+		return 1.26f;
 	}
 	else {
-		return 1.20f;
+		return 1.22f;
 	}
 }
 
