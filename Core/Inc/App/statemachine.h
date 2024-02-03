@@ -16,6 +16,7 @@
 #include <Device/sound.h>
 #include <Device/waterflow.h>
 #include <Device/solenoid.h>
+#include <Device/led.h>
 
 
 typedef enum {
@@ -30,12 +31,14 @@ typedef struct {
 	PLACEDPOINT_Id_t placed_point_id;
 	SOLENOID_Id solenoid_id;
 	WATERFLOW_Id_t water_flow_id;
+	LED_Id_t led_id;
 
 	RFID_t rfid;
 	uint8_t placed_point_status;
 	uint8_t solenoid_status;
 	uint8_t water_flow_status;
 	uint8_t rfid_placed_status;
+	uint8_t led_status;
 	uint8_t error;
 }MACHINE_t;
 
@@ -46,6 +49,7 @@ bool STATEMACHINE_openVAN(MACHINE_Id_t id, uint16_t volume);
 bool STATEMACHINE_cancelOpenVAN(MACHINE_Id_t id);
 bool STATEMACHINE_playSound(MACHINE_Id_t id, uint32_t soundIndex);
 uint8_t STATEMACHINE_updateRFID(MACHINE_Id_t id, RFID_t *rfid);
+bool STATEMACHINE_controlIo(MACHINE_Id_t id, uint8_t ioMask);
 MACHINE_t* STATEMACHINE_getMachine(MACHINE_Id_t id);
 
 #endif /* INC_APP_STATEMACHINE_H_ */
