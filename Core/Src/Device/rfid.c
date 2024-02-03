@@ -165,7 +165,7 @@ static void RFID_runById(RFID_Id_t id){
 	uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
 	uint8_t uidLength;                        // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
 	uint8_t readBlockData[16] = {0};
-	if(!PN532_readPassiveTargetID(&RFID_handleTable[id], PN532_MIFARE_ISO14443A, uid, &uidLength, 100)){
+	if(!PN532_readPassiveTargetID(&RFID_handleTable[id], PN532_MIFARE_ISO14443A, uid, &uidLength, 50)){
 		RFID_handleTable[id].isPlaced = false;
 		return;
 	}
@@ -240,7 +240,7 @@ static void RFID_buildToBlockData(RFID_t *rfid, uint8_t *data, uint32_t data_len
 	data[data_len_out++] = idKey;
 #elif defined(RFID_V2)
 	uint8_t data_len_out = 0;
-	uint16_t volume = (rfid->volume /1000) * 10;
+	uint16_t volume = (rfid->volume * 10) / 1000;
 	data[data_len_out++] = (volume >> 8) & 0xFF;
 	data[data_len_out++] = volume & 0xFF;
 	data[data_len_out++] = rfid->issueDate[0];
@@ -289,7 +289,7 @@ static bool RFID_parseFromBlockData(uint8_t *data, uint32_t data_len, RFID_t *rf
 	rfid->isValid = true;
 	uint16_t volume = (uint16_t)data[0] << 8  |
 						data[1];
-	rfid->volume = (volume / 10) * 1000;
+	rfid->volume = (volume * 1000 ) / 10;
 	rfid->issueDate[0] = data[2];
 	rfid->issueDate[1] = data[3];
 	rfid->issueDate[2] = ((uint16_t)data[4] << 8  | data[5]) - 2000;
