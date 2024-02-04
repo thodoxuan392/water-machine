@@ -20,7 +20,7 @@
 
 
 typedef enum {
-	MACHINE_ID_1 = 0,
+	MACHINE_ID_1 = 1,
 	MACHINE_ID_2,
 	MACHINE_ID_3,
 	MACHINE_ID_MAX

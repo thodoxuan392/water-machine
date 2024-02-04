@@ -29,7 +29,7 @@ bool STATUSREPORTER_run(){
 	if(timeout_flag){
 		timeout_flag = false;
 		// Publish status
-		for (int id = 0; id < MACHINE_ID_MAX; ++id) {
+		for (int id = MACHINE_ID_1; id < MACHINE_ID_MAX; ++id) {
 			STATUSREPORTER_report_status(id);
 		}
 		SCH_Add_Task(STATUSREPORTER_timeout, STATUSREPORT_INTERVAL, 0);
@@ -58,6 +58,7 @@ static void STATUSREPORTER_buildStatus(PROTOCOL_t * proto, MACHINE_Id_t machineI
 	proto->data[proto->data_len++] = machine->solenoid_status;
 	proto->data[proto->data_len++] = machine->water_flow_status;
 	proto->data[proto->data_len++] = machine->rfid_placed_status;
+	proto->data[proto->data_len++] = machine->led_status;
 	proto->data[proto->data_len++] = machine->error;
 }
 

@@ -70,11 +70,11 @@ bool STATEMACHINE_init(){
 
 void STATEMACHINE_run(){
 	// Update machine status
-	for (int id = 0; id < MACHINE_ID_MAX; ++id) {
+	for (int id = MACHINE_ID_1; id < MACHINE_ID_MAX; ++id) {
 		MACHINE_update(id);
 	}
 	// Check RFID detected
-	for (int id = 0; id < MACHINE_ID_MAX; ++id) {
+	for (int id = MACHINE_ID_1; id < MACHINE_ID_MAX; ++id) {
 		if(RFID_isDetected(machine[id].rfid_id)){
 			RFID_clearDetected(machine[id].rfid_id);
 			STATUSREPORTER_reportRfidDetected(id);
@@ -126,7 +126,7 @@ static void MACHINE_update(MACHINE_Id_t id){
 static void STATEMACHINE_onOpenVanCompletedCallback(uint8_t solenoidId, uint8_t success){
 	uint8_t result = success? RESULT_SUCCESS : RESULT_FAILED;
 	uint8_t machineId;
-	for (int id = 0; id < MACHINE_ID_MAX; ++id) {
+	for (int id = MACHINE_ID_1; id < MACHINE_ID_MAX; ++id) {
 		if(machine[id].solenoid_id == solenoidId){
 			machineId = id;
 			break;
