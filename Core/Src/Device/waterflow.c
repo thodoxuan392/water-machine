@@ -224,10 +224,13 @@ uint32_t WATERFLOW_getPulse(WATERFLOW_Id_t id){
 
 uint32_t WATERFLOW_getPulseByVolume(WATERFLOW_Id_t id, uint32_t volume){
 
-	for (int var = 0; var < WATERFLOW_VOLUME_PULSE_MAPPING_MAX_LEN; ++var) {
-		if(volume > WATERFLOW_handleTable[id].mapping[var].volume){
+	for (int var = 0; var < WATERFLOW_VOLUME_PULSE_MAPPING_MAX_LEN - 1; ++var) {
+		if(volume >= WATERFLOW_handleTable[id].mapping[var].volume && 
+			volume <= WATERFLOW_handleTable[id].mapping[var + 1].volume){
 			if(volume == WATERFLOW_handleTable[id].mapping[var].volume){
 				return WATERFLOW_handleTable[id].mapping[var].pulse;
+			}else if(volume == WATERFLOW_handleTable[id].mapping[var + 1].volume){
+				return WATERFLOW_handleTable[id].mapping[var + 1].pulse;
 			}
 			break;
 		}

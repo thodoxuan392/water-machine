@@ -114,7 +114,7 @@ static void MACHINE_update(MACHINE_Id_t id){
 	RFID_get(machine[id].rfid_id, &machine[id].rfid);
 	machine[id].placed_point_status = PLACEDPOINT_isPlaced(machine[id].placed_point_id);
 	machine[id].solenoid_status = SOLENOIS_isEnable(machine[id].solenoid_id);
-	machine[id].water_flow_status = WATERFLOW_getIn2CcPerSecond(machine[id].water_flow_status);
+	machine[id].water_flow_status = WATERFLOW_getIn2CcPerSecond(machine[id].water_flow_id);
 	machine[id].rfid_placed_status = RFID_isPlaced(machine[id].rfid_id);
 	machine[id].led_status = LED_isEnable(machine[id].led_id);
 	machine[id].error = (uint8_t)PLACEDPOINT_isError(machine[id].placed_point_id) |
