@@ -128,7 +128,7 @@ RFID_Error_t RFID_set(RFID_Id_t id, RFID_t * rfid){
 	}
 	uint8_t writeData[16] = {0};
 	RFID_buildToBlockData(rfid, writeData, sizeof(writeData));
-	if(!PN532_readPassiveTargetID(&RFID_handleTable[id], PN532_MIFARE_ISO14443A, rfid->id, &rfid->id_len, 100)){
+	if(!PN532_readPassiveTargetID(&RFID_handleTable[id], PN532_MIFARE_ISO14443A, rfid->id, &rfid->id_len, 70)){
 		return RFID_ERROR_NOT_AVAILABLE;
 	}
 	if(!PN532_mifareclassic_AuthenticateBlock(&RFID_handleTable[id], rfid->id, rfid->id_len, RFID_PN532_DATA_BLOCK, 1, RFID_key)){

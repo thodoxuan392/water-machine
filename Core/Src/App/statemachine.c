@@ -83,11 +83,11 @@ void STATEMACHINE_run(){
 }
 
 bool STATEMACHINE_openVAN(MACHINE_Id_t id, uint16_t volume){
-	return VANMANAGER_openVan(id, volume);
+	return VANMANAGER_openVan(machine[id].solenoid_id, volume);
 }
 
 bool STATEMACHINE_cancelOpenVAN(MACHINE_Id_t id){
-	return VANMANAGER_cancelOpenVan(id);
+	return VANMANAGER_cancelOpenVan(machine[id].solenoid_id);
 }
 
 bool STATEMACHINE_playSound(MACHINE_Id_t id, uint32_t soundIndex){
