@@ -28,8 +28,12 @@ typedef struct {
 	bool openVanRequested;
 	bool cancelOpenVanRequested;
 	bool isOpening;
+
 	uint16_t volumeRequested;
 	uint16_t volumeFlushed;
+
+	uint32_t pulseRequested;
+
 	VANMANAGER_State state;
 
 	uint32_t flushTimerCnt;		// Calculate Volume flash every timer cnt
@@ -88,6 +92,7 @@ bool VANMANAGER_openVan(SOLENOID_Id id, uint16_t volume){
 	}
 	VANMANAGER_handleTable[id].openVanRequested = true;
 	VANMANAGER_handleTable[id].volumeRequested = volume;
+	VANMANAGER_handleTable[id].pulseRequested = WATERFLOW_getPulseByVolume(VANMANAGER_handleTable[id].waterflow_id, volume);
 	return true;
 }
 
@@ -133,6 +138,7 @@ static void VANMANAGER_runOpenVan(VANMANAGER_Handle* handle){
 }
 
 static void VANMANAGER_runWaitForOpenVanDone(VANMANAGER_Handle* handle){
+#if defined(WATERFLOW_SW_V1)
 	if(handle->volumeFlushed >= handle->volumeRequested){
 		SOLENOID_set(handle->solenoid_id, false);
 		handle->state = VANMANAGER_IDLE;
@@ -142,6 +148,18 @@ static void VANMANAGER_runWaitForOpenVanDone(VANMANAGER_Handle* handle){
 			VANMANAGER_onCompletedCallback(handle->solenoid_id,  true);
 		}
 	}
+#elif defined(WATERFLOW_SW_V2)
+	if(WATERFLOW_getPulse(handle->waterflow_id) >= handle->pulseRequested){
+		WATERFLOW_resetPulse(handle->waterflow_id);
+		SOLENOID_set(handle->solenoid_id, false);
+		handle->state = VANMANAGER_IDLE;
+		handle->isOpening = false;
+		if(VANMANAGER_onCompletedCallback){
+			// Complete success callback
+			VANMANAGER_onCompletedCallback(handle->solenoid_id,  true);
+		}
+	}
+#endif
 	if(handle->openVanTimeoutFlag){
 		SOLENOID_set(handle->solenoid_id, false);
 		handle->state = VANMANAGER_IDLE;
@@ -162,14 +180,16 @@ static void VANMANAGER_runWaitForOpenVanDone(VANMANAGER_Handle* handle){
 		}
 	}
 }
-
+#if defined(WATERFLOW_SW_V1)
 static uint32_t VANMANAGER_calVolumeFlushedInTime(SOLENOID_Id id,  uint32_t timeMs){
 	uint32_t waterFlowInCCOverMs = WATERFLOW_get(VANMANAGER_handleTable[id].waterflow_id) * timeMs / 60;
 	return waterFlowInCCOverMs;
 }
+#endif
 
 static void VANMANAGER_interrupt1ms(void){
 	for (int id = 0; id < SOLENOID_ID_MAX; ++id) {
+#if defined(WATERFLOW_SW_V1)
 		// Flash timer counter
 		if(VANMANAGER_handleTable[id].isOpening){
 			if(VANMANAGER_handleTable[id].flushTimerCnt > 0){
@@ -180,6 +200,7 @@ static void VANMANAGER_interrupt1ms(void){
 				}
 			}
 		}
+#endif
 
 		// Timeout when cannot reach to volume requested
 		if(VANMANAGER_handleTable[id].openVanTimeCnt > 0){
@@ -189,4 +210,5 @@ static void VANMANAGER_interrupt1ms(void){
 			}
 		}
 	}
+
 }

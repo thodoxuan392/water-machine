@@ -27,7 +27,6 @@ typedef enum {
 
 typedef struct {
 	RFID_Id_t rfid_id;
-	SOUND_Id sound_id;
 	PLACEDPOINT_Id_t placed_point_id;
 	SOLENOID_Id solenoid_id;
 	WATERFLOW_Id_t water_flow_id;

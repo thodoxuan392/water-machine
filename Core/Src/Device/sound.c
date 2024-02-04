@@ -20,6 +20,7 @@
 #define SOUND_PLAY_TIMEOUT_MS					30000	// 30s
 
 #define SOUND_RX_BUFFER_LEN			128
+#define SOUND_PLAY_QUEUE_LEN		10
 
 #define SOUND_START_BYTE		0x7E
 #define SOUND_STOP_BYTE			0xEF
@@ -85,7 +86,6 @@ typedef struct {
 }SOUND_Protocol;
 
 typedef struct {
-	SOUND_Id id;
 	UART_id_t uartId;
 
 	uint32_t timeoutCnt;
@@ -97,6 +97,10 @@ typedef struct {
 
 	uint32_t lastCmd;
 	uint32_t lastPlayTime;
+
+	uint8_t playQueueTail;
+	uint8_t playQueueHead;
+	uint8_t playQueue[SOUND_PLAY_QUEUE_LEN];
 }SOUND_Handle;
 
 static void SOUND_timerInterrupt1ms(void);
@@ -108,9 +112,6 @@ static bool SOUND_parseProtocol(uint8_t *data, uint32_t data_len, SOUND_Protocol
 static uint16_t SOUND_calCheckSumByProtocol(SOUND_Protocol *protocol);
 static uint16_t SOUND_calCheckSumByBuffer(uint8_t * buf, size_t buf_size);
 
-
-static bool SOUND_initById(SOUND_Id id);
-static bool SOUND_runById(SOUND_Id id);
 static bool SOUND_reset(SOUND_Handle * handle);
 static bool SOUND_setNormalWorking(SOUND_Handle * handle);
 static bool SOUND_setDefaultEQ(SOUND_Handle * handle);
@@ -120,95 +121,84 @@ static bool SOUND_setDefaultPlaybackSource(SOUND_Handle * handle);
 static bool SOUND_playSpecifyFile(SOUND_Handle * handle,uint8_t file);
 
 
-static SOUND_Handle SOUND_handleTable[] = {
-		[SOUND_ID_1] = {
-			.id = SOUND_ID_1,
-			.uartId = UART_1
-		},
-		[SOUND_ID_2] = {
-			.id = SOUND_ID_2,
-			.uartId = UART_3
-		},
-		[SOUND_ID_3] = {
-			.id = SOUND_ID_3,
-			.uartId = UART_4
-		},
+static SOUND_Handle SOUND_handleTable = {
+		.uartId = UART_4
 };
 
 bool SOUND_init(void){
 	TIMER_attach_intr_1ms(SOUND_timerInterrupt1ms);
-	for (int id = 0; id < SOUND_ID_MAX; ++id) {
-		SOUND_initById(id);
-	}
-}
-
-bool SOUND_run(void){
-	for (int id = 0; id < SOUND_ID_MAX; ++id) {
-		SOUND_runById(id);
-	}
-}
-
-bool SOUND_play(SOUND_Id id, SOUND_File file){
-	return SOUND_playSpecifyFile(&SOUND_handleTable[id], file);
-}
-
-bool SOUND_isError(SOUND_Id id){
-	return SOUND_handleTable[id].error;
-}
-
-
-void SOUND_test(void){
-	while(1){
-		SOUND_run();
-		SOUND_play(SOUND_ID_1, SOUND_FILE_PLEASE_TAKE_A_BOTTLE);
-		SOUND_play(SOUND_ID_2, SOUND_FILE_PLEASE_TAKE_A_BOTTLE);
-		SOUND_play(SOUND_ID_3, SOUND_FILE_PLEASE_TAKE_A_BOTTLE);
-	}
-}
-
-static bool SOUND_initById(SOUND_Id id){
-	if(!SOUND_reset(&SOUND_handleTable[id])){
+	if(!SOUND_reset(&SOUND_handleTable)){
 		utils_log_error("Couldn't reset Sound module\r\n");
 	}
-	if(!SOUND_setNormalWorking(&SOUND_handleTable[id])){
+	if(!SOUND_setNormalWorking(&SOUND_handleTable)){
 		utils_log_error("Couldn't set Normal working\r\n");
 	}
-	if(!SOUND_setDefaultEQ(&SOUND_handleTable[id])){
+	if(!SOUND_setDefaultEQ(&SOUND_handleTable)){
 		utils_log_error("Couldn't set Sound EQ\r\n");
 	}
-	if(!SOUND_setDefaultPlaybackMode(&SOUND_handleTable[id])){
+	if(!SOUND_setDefaultPlaybackMode(&SOUND_handleTable)){
 		utils_log_error("Couldn't set Sound playback mode\r\n");
 	}
-	if(!SOUND_setDefaultVolume(&SOUND_handleTable[id])){
+	if(!SOUND_setDefaultVolume(&SOUND_handleTable)){
 		utils_log_error("Couldn't reset Sound volume\r\n");
 	}
-	if(!SOUND_setDefaultPlaybackSource(&SOUND_handleTable[id])){
+	if(!SOUND_setDefaultPlaybackSource(&SOUND_handleTable)){
 		utils_log_error("Couldn't reset Sound playback source\r\n");
 	}
 	return true;
 }
 
-static bool SOUND_runById(SOUND_Id id){
+
+bool SOUND_run(void){
+	// If SOUND player is not busy and Queue is not empty
+	if(SOUND_handleTable.busy && SOUND_handleTable.playQueueHead != SOUND_handleTable.playQueueTail){
+		uint8_t file = SOUND_handleTable.playQueue[SOUND_handleTable.playQueueTail];
+		SOUND_playSpecifyFile(&SOUND_handleTable, file);
+		SOUND_handleTable.playQueueTail = (SOUND_handleTable.playQueueTail + 1) % SOUND_PLAY_QUEUE_LEN;
+	}
+	// Polling to play status
 	SOUND_Protocol protocol;
-	if(SOUND_waitProtocolFeedback(&SOUND_handleTable[id], &protocol, 1)){
+	if(SOUND_waitProtocolFeedback(&SOUND_handleTable, &protocol, 1)){
 		if(protocol.command == SOUND_QUERY_TFCARD_STAY){
 			// Audio play finished
-			SOUND_handleTable[id].busy = false;
+			SOUND_handleTable.busy = false;
 		}
 	}
 	// If device busy and play time is over -> Make sound is not busy
-	if(SOUND_handleTable[id].busy && (HAL_GetTick() - SOUND_handleTable[id].lastPlayTime > SOUND_PLAY_TIMEOUT_MS)){
-		SOUND_handleTable[id].busy = false;
+	if(SOUND_handleTable.busy && (HAL_GetTick() - SOUND_handleTable.lastPlayTime > SOUND_PLAY_TIMEOUT_MS)){
+		SOUND_handleTable.busy = false;
+	}
+	return true;
+}
+
+bool SOUND_play(uint8_t file){
+	SOUND_handleTable.playQueue[SOUND_handleTable.playQueueHead] = file;
+	SOUND_handleTable.playQueueHead = (SOUND_handleTable.playQueueHead + 1) % SOUND_PLAY_QUEUE_LEN;
+	return true;
+}
+
+bool SOUND_isError(){
+	return SOUND_handleTable.error;
+}
+
+
+void SOUND_test(void){
+	uint8_t file = 1;
+	while(1){
+		SOUND_run();
+		SOUND_play(file++);
+		if(file >= 10){
+			// Block
+			while(1){}
+		}
 	}
 }
 
 static void SOUND_timerInterrupt1ms(void){
-	for (int id = 0; id < SOUND_ID_MAX; ++id) {
-		if(SOUND_handleTable[id].timeoutCnt > 0){
-			SOUND_handleTable[id].timeoutCnt--;
-			if(SOUND_handleTable[id].timeoutCnt == 0){
-				SOUND_handleTable[id].timeoutFlag = true;
-			}
+	if(SOUND_handleTable.timeoutCnt > 0){
+		SOUND_handleTable.timeoutCnt--;
+		if(SOUND_handleTable.timeoutCnt == 0){
+			SOUND_handleTable.timeoutFlag = true;
 		}
 	}
 }

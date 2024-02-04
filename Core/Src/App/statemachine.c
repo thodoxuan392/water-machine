@@ -30,7 +30,6 @@ static void STATEMACHINE_onOpenVanCompletedCallback(uint8_t solenoidId,  uint8_t
 static MACHINE_t machine[] = {
 		[MACHINE_ID_1] = {
 				.rfid_id = RFID_ID_1,
-				.sound_id = SOUND_ID_1,
 				.placed_point_id = PLACEDPOINT_ID_1,
 				.solenoid_id = SOLENOID_ID_1,
 				.water_flow_id = WATERFLOW_ID_1,
@@ -41,7 +40,6 @@ static MACHINE_t machine[] = {
 		},
 		[MACHINE_ID_2] = {
 				.rfid_id = RFID_ID_2,
-				.sound_id = SOUND_ID_2,
 				.placed_point_id = PLACEDPOINT_ID_2,
 				.solenoid_id = SOLENOID_ID_2,
 				.water_flow_id = WATERFLOW_ID_2,
@@ -52,7 +50,6 @@ static MACHINE_t machine[] = {
 		},
 		[MACHINE_ID_3] = {
 				.rfid_id = RFID_ID_3,
-				.sound_id = SOUND_ID_3,
 				.placed_point_id = PLACEDPOINT_ID_3,
 				.solenoid_id = SOLENOID_ID_3,
 				.water_flow_id = WATERFLOW_ID_3,
@@ -90,7 +87,7 @@ bool STATEMACHINE_cancelOpenVAN(MACHINE_Id_t id){
 }
 
 bool STATEMACHINE_playSound(MACHINE_Id_t id, uint32_t soundIndex){
-	return SOUND_play(machine[id].sound_id, soundIndex);
+	return SOUND_play(soundIndex);
 }
 
 uint8_t STATEMACHINE_updateRFID(MACHINE_Id_t id, RFID_t *rfid){
@@ -110,7 +107,7 @@ static void MACHINE_update(MACHINE_Id_t id){
 	machine[id].error = (uint8_t)PLACEDPOINT_isError(machine[id].placed_point_id) |
 						((uint8_t)WATERFLOW_isError(machine[id].water_flow_id) << 1) |
 						((uint8_t)RFID_isError(machine[id].rfid_id) << 2) |
-						((uint8_t)SOUND_isError(machine[id].placed_point_id) << 3);
+						((uint8_t)SOUND_isError() << 3);
 }
 
 static void STATEMACHINE_onOpenVanCompletedCallback(uint8_t solenoidId, uint8_t success){
