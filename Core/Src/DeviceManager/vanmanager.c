@@ -10,6 +10,7 @@
 
 #include <Device/solenoid.h>
 #include <Device/waterflow.h>
+#include <Device/placedpoint.h>
 
 #include <Hal/timer.h>
 
@@ -19,12 +20,14 @@
 typedef enum {
 	VANMANAGER_IDLE,
 	VANMANAGER_OPEN_VAN,
-	VANMANAGER_WAIT_FOR_OPEN_VAN_DONE
+	VANMANAGER_WAIT_FOR_OPEN_VAN_DONE,
+	VANMANAGER_WAIT_FOR_PLACED_POINT,
 }VANMANAGER_State;
 
 typedef struct {
 	SOLENOID_Id solenoid_id;
 	WATERFLOW_Id_t waterflow_id;
+	PLACEDPOINT_Id_t placedpoint_id;
 	bool openVanRequested;
 	bool cancelOpenVanRequested;
 	bool isOpening;
@@ -47,16 +50,19 @@ static VANMANAGER_Handle VANMANAGER_handleTable[SOLENOID_ID_MAX] = {
 	[SOLENOID_ID_1] = {
 		.solenoid_id = SOLENOID_ID_1,
 		.waterflow_id = WATERFLOW_ID_1,
+		.placedpoint_id = PLACEDPOINT_ID_1,
 		.state = VANMANAGER_IDLE,
 	},
 	[SOLENOID_ID_2] = {
 		.solenoid_id = SOLENOID_ID_2,
 		.waterflow_id = WATERFLOW_ID_2,
+		.placedpoint_id = PLACEDPOINT_ID_2,
 		.state = VANMANAGER_IDLE,
 	},
 	[SOLENOID_ID_3] = {
 		.solenoid_id = SOLENOID_ID_3,
 		.waterflow_id = WATERFLOW_ID_3,
+		.placedpoint_id = PLACEDPOINT_ID_3,
 		.state = VANMANAGER_IDLE,
 	}
 };
@@ -68,9 +74,11 @@ static void VANMANAGER_runByHandle(VANMANAGER_Handle*);
 static void VANMANAGER_runIdle(VANMANAGER_Handle*);
 static void VANMANAGER_runOpenVan(VANMANAGER_Handle*);
 static void VANMANAGER_runWaitForOpenVanDone(VANMANAGER_Handle*);
+static void VANMANAGER_runWaitForPlacedPoint(VANMANAGER_Handle*);
 
+#if defined(WATERFLOW_SW_V1)
 static uint32_t VANMANAGER_calVolumeFlushedInTime(SOLENOID_Id id,  uint32_t timeMs);
-
+#endif
 
 void VANMANAGER_init(void){
 	TIMER_attach_intr_1ms(VANMANAGER_interrupt1ms);
@@ -114,6 +122,9 @@ static void VANMANAGER_runByHandle(VANMANAGER_Handle* handle){
 		case VANMANAGER_WAIT_FOR_OPEN_VAN_DONE:
 			VANMANAGER_runWaitForOpenVanDone(handle);
 			break;
+		case VANMANAGER_WAIT_FOR_PLACED_POINT:
+			VANMANAGER_runWaitForPlacedPoint(handle);
+			break;
 		default:
 			break;
 	}
@@ -123,16 +134,16 @@ static void VANMANAGER_runByHandle(VANMANAGER_Handle* handle){
 static void VANMANAGER_runIdle(VANMANAGER_Handle* handle){
 	if(handle->openVanRequested){
 		handle->openVanRequested = false;
-		handle->state = VANMANAGER_OPEN_VAN;
+		handle->flushTimerCnt = VANMANAGER_FLUSH_TIMER_PERIOD_MS;
+		handle->volumeFlushed = 0;
+		handle->openVanTimeCnt = VANMANAGER_OPEN_VAN_TIMEOUT_MS;
+		handle->openVanTimeoutFlag = false;
+		handle->state = VANMANAGER_WAIT_FOR_PLACED_POINT;
 	}
 }
 
 static void VANMANAGER_runOpenVan(VANMANAGER_Handle* handle){
 	SOLENOID_set(handle->solenoid_id, true);
-	handle->flushTimerCnt = VANMANAGER_FLUSH_TIMER_PERIOD_MS;
-	handle->volumeFlushed = 0;
-	handle->openVanTimeCnt = VANMANAGER_OPEN_VAN_TIMEOUT_MS;
-	handle->openVanTimeoutFlag = false;
 	handle->isOpening = true;
 	handle->state = VANMANAGER_WAIT_FOR_OPEN_VAN_DONE;
 }
@@ -179,7 +190,39 @@ static void VANMANAGER_runWaitForOpenVanDone(VANMANAGER_Handle* handle){
 			VANMANAGER_onCompletedCallback(handle->solenoid_id, false);
 		}
 	}
+	if(!PLACEDPOINT_isPlaced(handle->placedpoint_id)){
+		SOLENOID_set(handle->solenoid_id, false);
+		handle->cancelOpenVanRequested = false;
+		handle->isOpening = false;
+		handle->state = VANMANAGER_IDLE;
+		if(VANMANAGER_onCompletedCallback){
+			// Complete failed callback
+			VANMANAGER_onCompletedCallback(handle->solenoid_id, false);
+		}
+	}
 }
+
+static void VANMANAGER_runWaitForPlacedPoint(VANMANAGER_Handle* handle){
+	if(PLACEDPOINT_isPlaced(handle->placedpoint_id)){
+		if(!handle->isOpening){
+			handle->state = VANMANAGER_OPEN_VAN;
+		}else {
+			SOLENOID_set(handle->solenoid_id, true);
+			handle->isOpening = true;
+			handle->state = VANMANAGER_WAIT_FOR_OPEN_VAN_DONE;
+		}
+	}
+	if(handle->openVanTimeoutFlag){
+		SOLENOID_set(handle->solenoid_id, false);
+		handle->state = VANMANAGER_IDLE;
+		handle->isOpening = false;
+		if(VANMANAGER_onCompletedCallback){
+			// Complete failed callback
+			VANMANAGER_onCompletedCallback(handle->solenoid_id, false);
+		}
+	}
+}
+
 #if defined(WATERFLOW_SW_V1)
 static uint32_t VANMANAGER_calVolumeFlushedInTime(SOLENOID_Id id,  uint32_t timeMs){
 	uint32_t waterFlowInCCOverMs = WATERFLOW_get(VANMANAGER_handleTable[id].waterflow_id) * timeMs / 60;
