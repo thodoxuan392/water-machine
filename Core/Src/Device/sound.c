@@ -122,7 +122,9 @@ static bool SOUND_playSpecifyFile(SOUND_Handle * handle,uint8_t file);
 
 
 static SOUND_Handle SOUND_handleTable = {
-		.uartId = UART_4
+		.uartId = UART_4,
+		.busy = false,
+		.error = false
 };
 
 bool SOUND_init(void){
@@ -151,7 +153,7 @@ bool SOUND_init(void){
 
 bool SOUND_run(void){
 	// If SOUND player is not busy and Queue is not empty
-	if(SOUND_handleTable.busy && SOUND_handleTable.playQueueHead != SOUND_handleTable.playQueueTail){
+	if(!SOUND_handleTable.busy && SOUND_handleTable.playQueueHead != SOUND_handleTable.playQueueTail){
 		uint8_t file = SOUND_handleTable.playQueue[SOUND_handleTable.playQueueTail];
 		SOUND_playSpecifyFile(&SOUND_handleTable, file);
 		SOUND_handleTable.playQueueTail = (SOUND_handleTable.playQueueTail + 1) % SOUND_PLAY_QUEUE_LEN;
@@ -183,14 +185,11 @@ bool SOUND_isError(){
 
 
 void SOUND_test(void){
-	uint8_t file = 1;
+	for (int var = 1; var <= 9; ++var) {
+		SOUND_play(var);
+	}
 	while(1){
 		SOUND_run();
-		SOUND_play(file++);
-		if(file >= 10){
-			// Block
-			while(1){}
-		}
 	}
 }
 

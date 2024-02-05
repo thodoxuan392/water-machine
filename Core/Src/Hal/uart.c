@@ -20,18 +20,6 @@ typedef struct {
 	uint16_t temp_data;
 }UART_info_t;
 
-
-UART_HandleTypeDef huart1 = {
-	.Instance = USART1,
-	.Init.BaudRate = 9600,
-	.Init.WordLength = UART_WORDLENGTH_8B,
-	.Init.StopBits = UART_STOPBITS_1,
-	.Init.Parity = UART_PARITY_NONE,
-	.Init.Mode = UART_MODE_TX_RX,
-	.Init.HwFlowCtl = UART_HWCONTROL_NONE,
-	.Init.OverSampling = UART_OVERSAMPLING_16
-};
-
 UART_HandleTypeDef huart2 = {
 	.Instance = USART2,
 	.Init.BaudRate = 115200,
@@ -43,16 +31,6 @@ UART_HandleTypeDef huart2 = {
 	.Init.OverSampling = UART_OVERSAMPLING_16
 };
 
-UART_HandleTypeDef huart3 = {
-	.Instance = USART3,
-	.Init.BaudRate = 9600,
-	.Init.WordLength = UART_WORDLENGTH_8B,
-	.Init.StopBits = UART_STOPBITS_1,
-	.Init.Parity = UART_PARITY_NONE,
-	.Init.Mode = UART_MODE_TX_RX,
-	.Init.HwFlowCtl = UART_HWCONTROL_NONE,
-	.Init.OverSampling = UART_OVERSAMPLING_16
-};
 
 UART_HandleTypeDef huart4 = {
 	.Instance = UART4,
@@ -68,17 +46,9 @@ UART_HandleTypeDef huart4 = {
 static utils_buffer_t uart_buffer[UART_MAX];
 
 static UART_info_t uart_table[UART_MAX] = {
-		[UART_1] = {
-			.huart_p = &huart1,
-			.buffer = &uart_buffer[UART_1]
-		},
 		[UART_2] = {
 			.huart_p = &huart2,
 			.buffer = &uart_buffer[UART_2]
-		},
-		[UART_3] = {
-			.huart_p = &huart3,
-			.buffer = &uart_buffer[UART_3]
 		},
 		[UART_4] = {
 			.huart_p = &huart4,
@@ -90,19 +60,13 @@ static UART_info_t uart_table[UART_MAX] = {
 bool UART_init(){
 	bool success = true;
 	// Init hal
-	success = (HAL_UART_Init(uart_table[UART_1].huart_p) == HAL_OK) && success;
 	success = (HAL_UART_Init(uart_table[UART_2].huart_p) == HAL_OK) && success;
-	success = (HAL_UART_Init(uart_table[UART_3].huart_p) == HAL_OK) && success;
 	success = (HAL_UART_Init(uart_table[UART_4].huart_p) == HAL_OK) && success;
 	// Init buffer
-	success = utils_buffer_init(uart_table[UART_1].buffer, sizeof(uint8_t)) && success;
 	success = utils_buffer_init(uart_table[UART_2].buffer, sizeof(uint8_t)) && success;
-	success = utils_buffer_init(uart_table[UART_3].buffer, sizeof(uint8_t)) && success;
 	success = utils_buffer_init(uart_table[UART_4].buffer, sizeof(uint8_t)) && success;
 
-	HAL_UART_Receive_IT(uart_table[UART_1].huart_p, &uart_table[UART_1].temp_data, 1);
 	HAL_UART_Receive_IT(uart_table[UART_2].huart_p, &uart_table[UART_2].temp_data, 1);
-	HAL_UART_Receive_IT(uart_table[UART_3].huart_p, &uart_table[UART_3].temp_data, 1);
 	HAL_UART_Receive_IT(uart_table[UART_4].huart_p, &uart_table[UART_4].temp_data, 1);
 	return success;
 }
@@ -130,24 +94,16 @@ void UART_clear_buffer(UART_id_t id){
 void UART_test(){
 	while(1){
 		HAL_Delay(1000);
-		UART_send(UART_3, "AT\r\n", 4);
+		UART_send(UART_2, "AT\r\n", 4);
 		utils_log_info("Sending AT command\r\n");
 	}
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef * huart){
-	if(huart->Instance == uart_table[UART_1].huart_p->Instance){
-		utils_buffer_push(uart_table[UART_1].buffer, &uart_table[UART_1].temp_data);
-		HAL_UART_Receive_IT(uart_table[UART_1].huart_p, &uart_table[UART_1].temp_data, 1);
-		if(uart_table[UART_1].callback) uart_table[UART_1].callback();
-	}else if(huart->Instance == uart_table[UART_2].huart_p->Instance){
+	if(huart->Instance == uart_table[UART_2].huart_p->Instance){
 		utils_buffer_push(uart_table[UART_2].buffer, &uart_table[UART_2].temp_data);
 		HAL_UART_Receive_IT(uart_table[UART_2].huart_p, &uart_table[UART_2].temp_data, 1);
 		if(uart_table[UART_2].callback) uart_table[UART_2].callback();
-	}else if(huart->Instance == uart_table[UART_3].huart_p->Instance){
-		utils_buffer_push(uart_table[UART_3].buffer, &uart_table[UART_3].temp_data);
-		HAL_UART_Receive_IT(uart_table[UART_3].huart_p, &uart_table[UART_3].temp_data, 1);
-		if(uart_table[UART_3].callback) uart_table[UART_3].callback();
 	}else if(huart->Instance == uart_table[UART_4].huart_p->Instance){
 		utils_buffer_push(uart_table[UART_4].buffer, &uart_table[UART_4].temp_data);
 		HAL_UART_Receive_IT(uart_table[UART_4].huart_p, &uart_table[UART_4].temp_data, 1);

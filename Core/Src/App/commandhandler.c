@@ -34,6 +34,7 @@ static void COMMANDHANDLER_handleCommandOpenVan(PROTOCOL_t *proto);
 static void COMMANDHANDLER_handleCommandCancelOpenVan(PROTOCOL_t *proto);
 static void COMMANDHANDLER_handleCommandPlayAudio(PROTOCOL_t *proto);
 static void COMMANDHANDLER_handleCommandUpdateRfid(PROTOCOL_t *proto);
+static void COMMANDHANDLER_handleCommandControlIo(PROTOCOL_t *proto);
 
 // ACK
 static void COMMANDHANDLER_sendConfigACK(uint8_t machineId);
@@ -51,6 +52,8 @@ static void COMMANDHANDLER_sendCommandPlayAudioResult(uint8_t machineId, uint8_t
 static void COMMANDHANDLER_sendCommandUpdateRfidACK(uint8_t machineId);
 static void COMMANDHANDLER_sendCommandUpdateRfidResult(uint8_t machineId, uint8_t result);
 
+static void COMMANDHANDLER_sendCommandControlIoACK(uint8_t machineId);
+static void COMMANDHANDLER_sendCommandControlIoResult(uint8_t machineId, uint8_t result);
 
 
 static PROTOCOL_t receive_message;
@@ -76,6 +79,9 @@ void COMMANDHANDLER_run(){
 				break;
 			case PROTOCOL_ID_COMMAND_UPDATE_RFID:
 				COMMANDHANDLER_handleCommandUpdateRfid(&receive_message);
+				break;
+			case PROTOCOL_ID_COMMAND_CONTROL_IO:
+				COMMANDHANDLER_handleCommandControlIo(&receive_message);
 				break;
 			default:
 				break;
@@ -170,8 +176,20 @@ static void COMMANDHANDLER_handleCommandUpdateRfid(PROTOCOL_t *proto){
 	// Send ACK
 	 COMMANDHANDLER_sendCommandUpdateRfidACK(machineId);
 	// Handle
-	uint8_t result = STATEMACHINE_updateRFID(machineId, &rfid);
+	 uint8_t result = STATEMACHINE_updateRFID(machineId, &rfid);
 	COMMANDHANDLER_sendCommandUpdateRfidResult(machineId, result);
+}
+
+static void COMMANDHANDLER_handleCommandControlIo(PROTOCOL_t *proto){
+	uint8_t machineId = proto->data[0];
+	uint8_t ioMask = proto->data[1];
+	// Send ACK
+	 COMMANDHANDLER_sendCommandControlIoACK(machineId);
+	// Handle
+	if(!STATEMACHINE_controlIo(machineId, ioMask)){
+		COMMANDHANDLER_sendCommandControlIoResult(machineId, RESULT_FAILED);
+	}
+	COMMANDHANDLER_sendCommandControlIoResult(machineId, RESULT_SUCCESS);
 }
 
 static void COMMANDHANDLER_sendConfigACK(uint8_t machineId){
@@ -255,3 +273,21 @@ static void COMMANDHANDLER_sendCommandUpdateRfidResult(uint8_t machineId, uint8_
 	PROTOCOL_send(&protocol);
 }
 
+
+static void COMMANDHANDLER_sendCommandControlIoACK(uint8_t machineId){
+	PROTOCOL_t protocol;
+	protocol.protocol_id = PROTOCOL_ID_COMMAND_CONTROL_IO_ACK;
+	protocol.data_len = 1;
+	protocol.data[0] = machineId;
+	PROTOCOL_send(&protocol);
+}
+
+static void COMMANDHANDLER_sendCommandControlIoResult(uint8_t machineId, uint8_t result){
+	PROTOCOL_t protocol;
+	protocol.protocol_id = PROTOCOL_ID_COMMAND_CONTROL_IO_RESULT;
+	protocol.data_len = 2;
+	protocol.data[0] = machineId;
+	protocol.data[1] = result;
+
+	PROTOCOL_send(&protocol);
+}

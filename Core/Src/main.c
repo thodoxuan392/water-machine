@@ -33,6 +33,7 @@
 #include "Device/rfid.h"
 #include "Device/sound.h"
 #include "Device/waterflow.h"
+#include "Device/led.h"
 #include "DeviceManager/vanmanager.h"
 #include "App/protocol.h"
 #include "App/commandhandler.h"
@@ -89,6 +90,7 @@ int main(void)
   SOUND_init();
   WATERFLOW_init();
   SOLENOID_init();
+  LED_init();
 //  // Device Manager Init
   VANMANAGER_init();
 //

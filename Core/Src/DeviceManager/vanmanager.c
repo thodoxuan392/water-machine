@@ -138,7 +138,7 @@ static void VANMANAGER_runIdle(VANMANAGER_Handle* handle){
 		handle->volumeFlushed = 0;
 		handle->openVanTimeCnt = VANMANAGER_OPEN_VAN_TIMEOUT_MS;
 		handle->openVanTimeoutFlag = false;
-		handle->state = VANMANAGER_WAIT_FOR_PLACED_POINT;
+		handle->state = VANMANAGER_OPEN_VAN;
 	}
 }
 
@@ -193,24 +193,14 @@ static void VANMANAGER_runWaitForOpenVanDone(VANMANAGER_Handle* handle){
 	if(!PLACEDPOINT_isPlaced(handle->placedpoint_id)){
 		SOLENOID_set(handle->solenoid_id, false);
 		handle->cancelOpenVanRequested = false;
-		handle->isOpening = false;
-		handle->state = VANMANAGER_IDLE;
-		if(VANMANAGER_onCompletedCallback){
-			// Complete failed callback
-			VANMANAGER_onCompletedCallback(handle->solenoid_id, false);
-		}
+		handle->state = VANMANAGER_WAIT_FOR_PLACED_POINT;
 	}
 }
 
 static void VANMANAGER_runWaitForPlacedPoint(VANMANAGER_Handle* handle){
 	if(PLACEDPOINT_isPlaced(handle->placedpoint_id)){
-		if(!handle->isOpening){
-			handle->state = VANMANAGER_OPEN_VAN;
-		}else {
-			SOLENOID_set(handle->solenoid_id, true);
-			handle->isOpening = true;
-			handle->state = VANMANAGER_WAIT_FOR_OPEN_VAN_DONE;
-		}
+		SOLENOID_set(handle->solenoid_id, true);
+		handle->state = VANMANAGER_WAIT_FOR_OPEN_VAN_DONE;
 	}
 	if(handle->openVanTimeoutFlag){
 		SOLENOID_set(handle->solenoid_id, false);
