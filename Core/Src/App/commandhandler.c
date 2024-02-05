@@ -118,10 +118,11 @@ static void COMMANDHANDLER_handleCommandOpenVan(PROTOCOL_t *proto){
 	}
 	uint8_t machineId = proto->data[0];
 	uint16_t volume = ((uint16_t)proto->data[1] << 8) | proto->data[2];
+	bool ignoreCheckPlacedPoint = (bool)(proto->data[3]);
 	// Send ACK
 	COMMANDHANDLER_sendCommandOpenVanACK(machineId);
 	// Handle
-	if(!STATEMACHINE_openVAN(machineId, volume)){
+	if(!STATEMACHINE_openVAN(machineId, volume, ignoreCheckPlacedPoint)){
 		COMMANDHANDLER_sendCommandOpenVanResult(machineId, RESULT_FAILED);
 		return;
 	}

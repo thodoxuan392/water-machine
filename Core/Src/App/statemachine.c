@@ -82,8 +82,8 @@ void STATEMACHINE_run(){
 	}
 }
 
-bool STATEMACHINE_openVAN(MACHINE_Id_t id, uint16_t volume){
-	return VANMANAGER_openVan(machine[id].solenoid_id, volume);
+bool STATEMACHINE_openVAN(MACHINE_Id_t id, uint16_t volume, bool ignoreCheckPlacedPoint){
+	return VANMANAGER_openVan(machine[id].solenoid_id, volume, ignoreCheckPlacedPoint);
 }
 
 bool STATEMACHINE_cancelOpenVAN(MACHINE_Id_t id){

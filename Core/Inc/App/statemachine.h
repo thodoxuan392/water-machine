@@ -45,7 +45,7 @@ typedef struct {
 
 bool STATEMACHINE_init();
 void STATEMACHINE_run();
-bool STATEMACHINE_openVAN(MACHINE_Id_t id, uint16_t volume);
+bool STATEMACHINE_openVAN(MACHINE_Id_t id, uint16_t volume, bool ignoreCheckPlacedPoint);
 bool STATEMACHINE_cancelOpenVAN(MACHINE_Id_t id);
 bool STATEMACHINE_playSound(MACHINE_Id_t id, uint32_t soundIndex);
 uint8_t STATEMACHINE_updateRFID(MACHINE_Id_t id, RFID_t *rfid);

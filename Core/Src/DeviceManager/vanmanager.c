@@ -34,8 +34,8 @@ typedef struct {
 
 	uint16_t volumeRequested;
 	uint16_t volumeFlushed;
-
 	uint32_t pulseRequested;
+	bool ignoreCheckPlacedPoint;
 
 	VANMANAGER_State state;
 
@@ -94,12 +94,13 @@ void VANMANAGER_setOnOpenVanCompletedCallback( void (*callback)(uint8_t solenoid
 	VANMANAGER_onCompletedCallback = callback;
 }
 
-bool VANMANAGER_openVan(SOLENOID_Id id, uint16_t volume){
+bool VANMANAGER_openVan(SOLENOID_Id id, uint16_t volume, bool ignoreCheckPlacedPoint){
 	if(VANMANAGER_handleTable[id].state != VANMANAGER_IDLE){
 		return false;
 	}
 	VANMANAGER_handleTable[id].openVanRequested = true;
 	VANMANAGER_handleTable[id].volumeRequested = volume;
+	VANMANAGER_handleTable[id].ignoreCheckPlacedPoint = ignoreCheckPlacedPoint;
 	VANMANAGER_handleTable[id].pulseRequested = WATERFLOW_getPulseByVolume(VANMANAGER_handleTable[id].waterflow_id, volume);
 	return true;
 }
@@ -190,7 +191,7 @@ static void VANMANAGER_runWaitForOpenVanDone(VANMANAGER_Handle* handle){
 			VANMANAGER_onCompletedCallback(handle->solenoid_id, false);
 		}
 	}
-	if(!PLACEDPOINT_isPlaced(handle->placedpoint_id)){
+	if(!handle->ignoreCheckPlacedPoint && !PLACEDPOINT_isPlaced(handle->placedpoint_id)){
 		SOLENOID_set(handle->solenoid_id, false);
 		handle->cancelOpenVanRequested = false;
 		handle->state = VANMANAGER_WAIT_FOR_PLACED_POINT;
