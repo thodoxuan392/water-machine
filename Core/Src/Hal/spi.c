@@ -43,16 +43,16 @@ void SPI_init(void){
 }
 void SPI_transmit(SPI_CS cs, uint8_t *txBuffer,  uint32_t size, uint32_t timeout){
 	SPI_select(cs);
+	HAL_Delay(1);
 	HAL_SPI_Transmit(&hspi1, txBuffer, size, timeout);
 	SPI_deselect(cs);
 }
 
 void SPI_transmitAndReceive(SPI_CS cs, uint8_t *txBuffer, uint32_t txSize,  uint8_t *rxBuffer, uint32_t rxSize, uint32_t timeout){
 	SPI_select(cs);
+	HAL_Delay(1);
 	memcpy(SPI_txBuffer, txBuffer, txSize);
-	if(HAL_SPI_TransmitReceive(&hspi1, SPI_txBuffer, SPI_rxBuffer, txSize + rxSize, timeout) != HAL_OK){
-		return;
-	}
+	HAL_SPI_TransmitReceive(&hspi1, SPI_txBuffer, SPI_rxBuffer, txSize + rxSize, timeout);
 	memcpy(rxBuffer, &SPI_rxBuffer[txSize], rxSize);
 	SPI_deselect(cs);
 }

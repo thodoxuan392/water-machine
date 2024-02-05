@@ -86,11 +86,12 @@ int main(void)
   // Device Init
   EEPROM_init();
   PLACEDPOINT_init();
+  SOLENOID_init();
+  LED_init();
   RFID_init();
   SOUND_init();
   WATERFLOW_init();
-  SOLENOID_init();
-  LED_init();
+
 //  // Device Manager Init
   VANMANAGER_init();
 //
