@@ -112,7 +112,7 @@ static void COMMANDHANDLER_handleConfig(PROTOCOL_t *proto){
 	COMMANDHANDLER_sendConfigResult(machineId, RESULT_SUCCESS);
 }
 static void COMMANDHANDLER_handleCommandOpenVan(PROTOCOL_t *proto){
-	if(proto->data_len != 3){
+	if(proto->data_len != 4){
 		utils_log_error("HandleCommandOpenVan failed: Invalid data_len %d, expected 3\r\n", proto->data_len);
 		return;
 	}
