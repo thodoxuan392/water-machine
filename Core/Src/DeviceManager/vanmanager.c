@@ -15,7 +15,7 @@
 #include <Hal/timer.h>
 
 #define VANMANAGER_FLUSH_TIMER_PERIOD_MS	100
-#define VANMANAGER_OPEN_VAN_TIMEOUT_MS		( 2 * 60 * 1000)
+#define VANMANAGER_OPEN_VAN_TIMEOUT_MS_BY_VOLUME(volume)		( 60 * volume)
 
 typedef enum {
 	VANMANAGER_IDLE,
@@ -136,8 +136,12 @@ static void VANMANAGER_runIdle(VANMANAGER_Handle* handle){
 	if(handle->openVanRequested){
 		handle->openVanRequested = false;
 		handle->flushTimerCnt = VANMANAGER_FLUSH_TIMER_PERIOD_MS;
+#if defined(WATERFLOW_SW_V1)
 		handle->volumeFlushed = 0;
-		handle->openVanTimeCnt = VANMANAGER_OPEN_VAN_TIMEOUT_MS;
+#elif defined(WATERFLOW_SW_V2)
+		WATERFLOW_resetPulse(handle->waterflow_id);
+#endif
+		handle->openVanTimeCnt = VANMANAGER_OPEN_VAN_TIMEOUT_MS_BY_VOLUME(handle->volumeRequested);
 		handle->openVanTimeoutFlag = false;
 		handle->state = VANMANAGER_OPEN_VAN;
 	}
@@ -162,7 +166,6 @@ static void VANMANAGER_runWaitForOpenVanDone(VANMANAGER_Handle* handle){
 	}
 #elif defined(WATERFLOW_SW_V2)
 	if(WATERFLOW_getPulse(handle->waterflow_id) >= handle->pulseRequested){
-		WATERFLOW_resetPulse(handle->waterflow_id);
 		SOLENOID_set(handle->solenoid_id, false);
 		handle->state = VANMANAGER_IDLE;
 		handle->isOpening = false;
